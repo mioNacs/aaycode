@@ -1,103 +1,113 @@
-import Image from "next/image";
+import Link from "next/link";
+import { FiLink, FiTrendingUp, FiUser, FiUserPlus, FiSettings, FiShare2 } from "react-icons/fi";
+
+const features = [
+  {
+    icon: FiLink,
+    title: "Unify your coding footprint",
+    description: "Pull stats from your favourite platforms and present them in a single shareable home.",
+  },
+  {
+    icon: FiUser,
+    title: "Showcase a custom username",
+    description: "Claim a clean URL that's easy to share with hiring managers, friends, and mentors.",
+  },
+  {
+    icon: FiTrendingUp,
+    title: "Track progress over time",
+    description: "Stay motivated with snapshots of how your problem-solving and projects evolve week to week.",
+  },
+];
+
+const steps = [
+  {
+    number: "1",
+    title: "Create your account",
+    body: "Sign up with Google, GitHub, or email/password. Your username is reserved instantly.",
+  },
+  {
+    number: "2",
+    title: "Connect coding services",
+    body: "Sync GitHub, LeetCode, Codeforces, and more (coming soon) to populate your profile automatically.",
+  },
+  {
+    number: "3",
+    title: "Share your profile",
+    body: "Send a single link that captures your progress, projects, and achievements at a glance.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="container flex min-h-[70vh] flex-col justify-center gap-10 py-16">
+      <section className="container pt-12">
+        <div className="flex flex-col gap-12 rounded-[32px] bg-white/80 p-10 shadow-[0_35px_80px_rgba(79,114,205,0.12)] backdrop-blur">
+          <div className="flex flex-col gap-6 md:max-w-2xl">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-teal-50 px-4 py-1 text-sm font-medium text-teal-700">
+              <span className="h-2 w-2 rounded-full bg-teal-500" />
+              AyyCode Profiles
+            </span>
+            <h1 className="text-4xl font-semibold leading-tight text-[#0f172a] sm:text-5xl">
+              Your coding journey, beautifully packaged in one link.
+            </h1>
+            <p className="text-lg text-neutral-600">
+              Stop juggling screenshots and spreadsheets. AyyCode pulls your stats together, keeps them
+              fresh, and gives you a polished profile to share with the world.
+            </p>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500"
+            >
+              <span className="text-white">Start for free</span>
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-full border border-teal-200 bg-white px-6 py-3 text-sm font-semibold text-teal-600 transition hover:border-teal-300"
+            >
+              Explore the dashboard
+            </Link>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      <section className="container">
+        <div className="grid gap-8 md:grid-cols-3">
+          {features.map((feature) => (
+            <div key={feature.title} className="card p-6">
+              <feature.icon className="mb-4 h-8 w-8 text-teal-600" />
+              <h3 className="text-lg font-semibold text-[#0f172a]">{feature.title}</h3>
+              <p className="mt-2 text-sm text-neutral-600">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="container pb-10">
+        <div className="rounded-[28px] bg-white/90 p-10 shadow-[0_35px_90px_rgba(99,102,241,0.08)] backdrop-blur">
+          <h2 className="text-3xl font-semibold text-[#0f172a]">How it works</h2>
+          <p className="mt-2 max-w-2xl text-neutral-600">
+            AyyCode streamlines the way you share your progress. In just a few minutes you can stand up a
+            professional-looking profile for recruiters, communities, or personal milestones.
+          </p>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.number} className="card flex flex-col gap-4 p-6">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
+                    {step.number}
+                  </span>
+                  </div>
+                <h3 className="text-lg font-semibold text-[#0f172a]">{step.title}</h3>
+                <p className="text-sm text-neutral-600">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
