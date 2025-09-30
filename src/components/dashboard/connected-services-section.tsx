@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { ConnectGitHubButton } from "@/components/connect-github-button";
 import type { UserConnections } from "@/lib/users";
 
+import { ConnectLeetCodeButton } from "./connect-leetcode-button";
 import { DisconnectGitHubButton } from "./disconnect-github-button";
+import { DisconnectLeetCodeButton } from "./disconnect-leetcode-button";
 
 type ConnectedServicesSectionProps = {
   connections?: UserConnections;
@@ -46,14 +48,23 @@ const ServiceRow = ({ title, description, action, helper }: ServiceRowProps) => 
 
 export function ConnectedServicesSection({ connections }: ConnectedServicesSectionProps) {
   const githubConnection = connections?.github;
+  const githubLastSynced = githubConnection?.lastSyncedAt
+    ? formatLastSynced(githubConnection.lastSyncedAt)
+    : null;
   const githubStatus = githubConnection
     ? githubConnection.username
       ? `Connected as @${githubConnection.username}`
       : "Connected"
     : "Not connected";
   const githubHelper = githubConnection?.lastSyncedAt
-    ? `Last synced ${formatLastSynced(githubConnection.lastSyncedAt)}`
+    ? githubLastSynced
+      ? `Last synced ${githubLastSynced}`
+      : "Sync time unavailable."
     : "Link your GitHub account to import repositories, stars, and followers.";
+  const leetCodeConnection = connections?.leetcode;
+  const leetCodeLastSynced = leetCodeConnection?.lastSyncedAt
+    ? formatLastSynced(leetCodeConnection.lastSyncedAt)
+    : null;
 
   return (
     <section className="card max-w-3xl space-y-6 p-10">
@@ -72,7 +83,13 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           helper={githubHelper}
           action={
             githubConnection ? (
-              <DisconnectGitHubButton />
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <ConnectGitHubButton
+                  connected
+                  username={githubConnection.username}
+                />
+                <DisconnectGitHubButton />
+              </div>
             ) : (
               <ConnectGitHubButton connected={false} />
             )
@@ -81,16 +98,27 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
 
         <ServiceRow
           title="LeetCode"
-          description="Not connected"
-          helper={<span>Coming soon.</span>}
+          description={
+            leetCodeConnection?.username
+              ? `Connected as @${leetCodeConnection.username}`
+              : "Not connected"
+          }
+          helper={
+            leetCodeConnection?.lastSyncedAt
+              ? leetCodeLastSynced
+                ? `Last synced ${leetCodeLastSynced}`
+                : "Sync time unavailable."
+              : "Add your LeetCode username to showcase solved problems and contest rating."
+          }
           action={
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-400 disabled:cursor-not-allowed disabled:text-neutral-300"
-            >
-              Connect
-            </button>
+            leetCodeConnection ? (
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <ConnectLeetCodeButton username={leetCodeConnection.username} />
+                <DisconnectLeetCodeButton />
+              </div>
+            ) : (
+              <ConnectLeetCodeButton username={null} />
+            )
           }
         />
 

@@ -1,5 +1,6 @@
 import type { UserWithId } from "./users";
 import { getGitHubStatsForUser } from "./github/cache";
+import { getLeetCodeStatsForUser } from "./leetcode/cache";
 
 export type IntegrationStatus = "connected" | "disconnected" | "error";
 
@@ -26,6 +27,7 @@ const formatCount = (value?: number): string => {
 };
 
 const GITHUB_STATS_MAX_AGE_HOURS = 12;
+const LEETCODE_STATS_MAX_AGE_HOURS = 12;
 
 const normalizeDate = (value?: Date | null): Date | null => {
   if (!value) {
@@ -98,16 +100,50 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
     };
   }
 
+  const stats = connection.username
+    ? await getLeetCodeStatsForUser(
+        user._id.toString(),
+        connection.username,
+        LEETCODE_STATS_MAX_AGE_HOURS
+      )
+    : null;
+
   return {
     status: "connected",
     username: connection.username,
     stats: [
-      { label: "Total solved", value: formatCount(connection.totalSolved) },
-      { label: "Contest rating", value: connection.contestRating ? connection.contestRating.toString() : "—" },
-      { label: "Global rank", value: connection.ranking ? `#${formatCount(connection.ranking)}` : "—" },
-      { label: "Badges", value: formatCount(connection.badges) },
+      {
+        label: "Total solved",
+        value: formatCount(stats?.totalSolved ?? connection.totalSolved),
+      },
+      {
+        label: "Contest rating",
+        value:
+          stats?.contestRating !== undefined && stats?.contestRating !== null
+            ? Math.round(stats.contestRating).toString()
+            : connection.contestRating
+            ? Math.round(connection.contestRating).toString()
+            : "—",
+        helper:
+          stats?.contestTopPercentage !== undefined && stats?.contestTopPercentage !== null
+            ? `Top ${stats.contestTopPercentage.toFixed(1)}%`
+            : undefined,
+      },
+      {
+        label: "Global rank",
+        value:
+          stats?.contestGlobalRanking !== undefined && stats?.contestGlobalRanking !== null
+            ? `#${formatCount(stats.contestGlobalRanking)}`
+            : connection.ranking
+            ? `#${formatCount(connection.ranking)}`
+            : "—",
+      },
+      {
+        label: "Badges",
+        value: formatCount(stats?.badges ?? connection.badges),
+      },
     ],
-    lastSyncedAt: normalizeDate(connection.lastSyncedAt),
+    lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
   };
 }
 

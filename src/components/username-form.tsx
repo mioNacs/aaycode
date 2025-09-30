@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";
 
 type UsernameFormProps = {
@@ -9,19 +10,118 @@ type UsernameFormProps = {
 };
 
 type Status = "idle" | "pending" | "success" | "error";
+type UsernameStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "taken"
+  | "invalid"
+  | "error"
+  | "current";
+
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 export function UsernameForm({ currentUsername }: UsernameFormProps) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [username, setUsername] = useState(currentUsername);
   const [baseUsername, setBaseUsername] = useState(currentUsername);
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
+  const [usernameFeedback, setUsernameFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setUsername(currentUsername);
     setBaseUsername(currentUsername);
+    setUsernameStatus("idle");
+    setUsernameFeedback(null);
   }, [currentUsername]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setUsernameStatus("idle");
+      setUsernameFeedback(null);
+      return;
+    }
+
+    const normalized = username.trim().toLowerCase();
+    const baseNormalized = baseUsername.trim().toLowerCase();
+
+    if (!normalized) {
+      setUsernameStatus("idle");
+      setUsernameFeedback("3-20 characters. Letters, numbers, and underscores only.");
+      return;
+    }
+
+    if (normalized === baseNormalized) {
+      setUsernameStatus("current");
+      setUsernameFeedback("This is your current username.");
+      return;
+    }
+
+    if (!USERNAME_PATTERN.test(normalized)) {
+      setUsernameStatus("invalid");
+      setUsernameFeedback("Use 3-20 characters with letters, numbers, or underscores.");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    setUsernameFeedback("Checking availability…");
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/user/username/available?username=${encodeURIComponent(normalized)}`,
+          { signal: controller.signal }
+        );
+
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+
+        const result: { available: boolean; reason?: string } = await response.json();
+
+        if (result.available) {
+          setUsernameStatus("available");
+          setUsernameFeedback("Nice! Username is available.");
+        } else {
+          setUsernameStatus("taken");
+          setUsernameFeedback(result.reason ?? "That username is already taken.");
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        console.error("Username availability check failed", error);
+        setUsernameStatus("error");
+        setUsernameFeedback("Couldn't verify username. Try again.");
+      }
+    }, 400);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [username, baseUsername, isEditing]);
+
+  const isSaveDisabled = useMemo(() => {
+    if (status === "pending") {
+      return true;
+    }
+
+    if (usernameStatus === "checking") {
+      return true;
+    }
+
+    if (usernameStatus === "invalid" || usernameStatus === "taken" || usernameStatus === "error") {
+      return true;
+    }
+
+    return false;
+  }, [status, usernameStatus]);
 
   const messageMarkup =
     message && (
@@ -44,6 +144,20 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
     if (username === baseUsername) {
       setMessage("That's already your username.");
       setStatus("success");
+      return;
+    }
+
+    if (usernameStatus === "checking") {
+      setStatus("error");
+      setMessage("Please wait until username availability completes.");
+      return;
+    }
+
+    if (usernameStatus === "invalid" || usernameStatus === "taken" || usernameStatus === "error") {
+      setStatus("error");
+      setMessage(
+        usernameFeedback ?? "Please resolve the username issue before saving."
+      );
       return;
     }
 
@@ -71,6 +185,16 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
       if (payload.username) {
         setBaseUsername(payload.username);
         setUsername(payload.username);
+        setUsernameStatus("current");
+        setUsernameFeedback("This is your current username.");
+
+        if (updateSession) {
+          await updateSession({
+            user: {
+              username: payload.username,
+            },
+          });
+        }
       }
 
       setIsEditing(false);
@@ -113,7 +237,7 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
             <button
               type="submit"
               className="flex items-center justify-center gap-2 rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-teal-400"
-              disabled={status === "pending"}
+              disabled={isSaveDisabled}
             >
               <FiSave className="h-4 w-4" />
               {status === "pending" ? "Saving…" : "Save username"}
@@ -125,6 +249,8 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
                 setUsername(baseUsername);
                 setStatus("idle");
                 setMessage(null);
+                setUsernameStatus("idle");
+                setUsernameFeedback(null);
               }}
               className="flex items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-800"
               disabled={status === "pending"}
@@ -133,6 +259,21 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
               Cancel
             </button>
           </div>
+
+        <p
+          className={`text-xs ${
+            usernameStatus === "available"
+              ? "text-emerald-600"
+              : usernameStatus === "taken" || usernameStatus === "invalid" || usernameStatus === "error"
+              ? "text-rose-500"
+              : usernameStatus === "checking"
+              ? "text-teal-600"
+              : "text-neutral-500"
+          }`}
+        >
+          {usernameFeedback ?? "3-20 characters. Letters, numbers, and underscores only."}
+        </p>
+
         </form>
       ) : (
         <div className="flex items-center justify-between rounded-xl border border-teal-100 bg-white p-4">
@@ -148,6 +289,8 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
               setStatus("idle");
               setMessage(null);
               setIsEditing(true);
+              setUsernameStatus("idle");
+              setUsernameFeedback(null);
             }}
             className="flex items-center justify-center gap-2 rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-medium text-teal-600 transition hover:border-teal-300 hover:text-teal-700"
           >

@@ -111,11 +111,45 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session) {
+        const sessionUser = (session as { user?: Record<string, unknown>; username?: string }).user;
+        const directUsername = (session as { username?: string | null }).username;
+
+        if (sessionUser && "username" in sessionUser) {
+          token.username = (sessionUser.username as string | null | undefined) ?? null;
+        } else if (directUsername !== undefined) {
+          token.username = directUsername ?? null;
+        }
+
+        if (sessionUser && "name" in sessionUser) {
+          token.name = (sessionUser.name as string | null | undefined) ?? null;
+        }
+
+        if (sessionUser && "email" in sessionUser) {
+          token.email = (sessionUser.email as string | null | undefined) ?? undefined;
+        }
+
+        if (sessionUser && "image" in sessionUser) {
+          token.picture = (sessionUser.image as string | null | undefined) ?? undefined;
+        }
+
+        return token;
+      }
+
       if (user) {
         token.id = user.id;
+
         if ("username" in user) {
           token.username = (user as { username?: string | null }).username ?? null;
+        }
+
+        if (typeof user.name === "string" || user.name === null) {
+          token.name = user.name ?? null;
+        }
+
+        if (typeof user.email === "string") {
+          token.email = user.email;
         }
       }
 
@@ -140,6 +174,14 @@ export const authOptions: NextAuthOptions = {
 
       if (session.user) {
         session.user.username = (token.username as string | null | undefined) ?? null;
+
+        if (token.name !== undefined) {
+          session.user.name = (token.name as string | null | undefined) ?? null;
+        }
+
+        if (token.email !== undefined) {
+          session.user.email = (token.email as string | undefined) ?? session.user.email;
+        }
       }
 
       return session;
