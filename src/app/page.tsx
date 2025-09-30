@@ -34,7 +34,7 @@ const steps = [
     icon: FiSettings,
     number: "2",
     title: "Connect coding services",
-    body: "Sync GitHub, LeetCode, Codeforces, and more (coming soon) to populate your profile automatically.",
+    body: "Sync GitHub, LeetCode, Codeforces, CodeChef, and GeeksforGeeks to populate your profile automatically.",
   },
   {
     icon: FiShare2,

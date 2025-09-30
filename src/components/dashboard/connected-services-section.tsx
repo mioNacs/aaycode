@@ -8,6 +8,10 @@ import { DisconnectGitHubButton } from "./disconnect-github-button";
 import { DisconnectLeetCodeButton } from "./disconnect-leetcode-button";
 import { ConnectCodeforcesButton } from "./connect-codeforces-button";
 import { DisconnectCodeforcesButton } from "./disconnect-codeforces-button";
+import { ConnectCodechefButton } from "./connect-codechef-button";
+import { DisconnectCodechefButton } from "./disconnect-codechef-button";
+import { ConnectGeeksforgeeksButton } from "./connect-geeksforgeeks-button";
+import { DisconnectGeeksforgeeksButton } from "./disconnect-geeksforgeeks-button";
 
 type ConnectedServicesSectionProps = {
   connections?: UserConnections;
@@ -70,6 +74,14 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
   const codeforcesConnection = connections?.codeforces;
   const codeforcesLastSynced = codeforcesConnection?.lastSyncedAt
     ? formatLastSynced(codeforcesConnection.lastSyncedAt)
+    : null;
+  const codechefConnection = connections?.codechef;
+  const codechefLastSynced = codechefConnection?.lastSyncedAt
+    ? formatLastSynced(codechefConnection.lastSyncedAt)
+    : null;
+  const geeksforgeeksConnection = connections?.geeksforgeeks;
+  const geeksforgeeksLastSynced = geeksforgeeksConnection?.lastSyncedAt
+    ? formatLastSynced(geeksforgeeksConnection.lastSyncedAt)
     : null;
 
   return (
@@ -150,6 +162,58 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
               </div>
             ) : (
               <ConnectCodeforcesButton handle={null} />
+            )
+          }
+        />
+
+        <ServiceRow
+          title="CodeChef"
+          description={
+            codechefConnection?.username
+              ? `Connected as @${codechefConnection.username}`
+              : "Not connected"
+          }
+          helper={
+            codechefConnection?.lastSyncedAt
+              ? codechefLastSynced
+                ? `Last synced ${codechefLastSynced}`
+                : "Sync time unavailable."
+              : "Link CodeChef to surface ratings, stars, and solved problems."
+          }
+          action={
+            codechefConnection ? (
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <ConnectCodechefButton username={codechefConnection.username} />
+                <DisconnectCodechefButton />
+              </div>
+            ) : (
+              <ConnectCodechefButton username={null} />
+            )
+          }
+        />
+
+        <ServiceRow
+          title="GeeksforGeeks"
+          description={
+            geeksforgeeksConnection?.username
+              ? `Connected as @${geeksforgeeksConnection.username}`
+              : "Not connected"
+          }
+          helper={
+            geeksforgeeksConnection?.lastSyncedAt
+              ? geeksforgeeksLastSynced
+                ? `Last synced ${geeksforgeeksLastSynced}`
+                : "Sync time unavailable."
+              : "Connect GeeksforGeeks to showcase coding score, solved problems, and ranks."
+          }
+          action={
+            geeksforgeeksConnection ? (
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <ConnectGeeksforgeeksButton username={geeksforgeeksConnection.username} />
+                <DisconnectGeeksforgeeksButton />
+              </div>
+            ) : (
+              <ConnectGeeksforgeeksButton username={null} />
             )
           }
         />
