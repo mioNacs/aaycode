@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { FiLink, FiTrendingUp, FiUser, FiUserPlus, FiSettings, FiShare2 } from "react-icons/fi";
+import { getCurrentUserSession } from "../lib/auth";
+
+export default async function Home() {
+const session = await getCurrentUserSession();
 
 const features = [
   {
@@ -21,23 +25,25 @@ const features = [
 
 const steps = [
   {
+    icon: FiUserPlus,
     number: "1",
     title: "Create your account",
     body: "Sign up with Google, GitHub, or email/password. Your username is reserved instantly.",
   },
   {
+    icon: FiSettings,
     number: "2",
     title: "Connect coding services",
     body: "Sync GitHub, LeetCode, Codeforces, and more (coming soon) to populate your profile automatically.",
   },
   {
+    icon: FiShare2,
     number: "3",
     title: "Share your profile",
     body: "Send a single link that captures your progress, projects, and achievements at a glance.",
   },
 ];
 
-export default function Home() {
   return (
     <div className="container flex min-h-[70vh] flex-col justify-center gap-10 py-16">
       <section className="container pt-12">
@@ -48,7 +54,7 @@ export default function Home() {
               AyyCode Profiles
             </span>
             <h1 className="text-4xl font-semibold leading-tight text-[#0f172a] sm:text-5xl">
-              Your coding journey, beautifully packaged in one link.
+              This... is how ‘I Code’.
             </h1>
             <p className="text-lg text-neutral-600">
               Stop juggling screenshots and spreadsheets. AyyCode pulls your stats together, keeps them
@@ -57,18 +63,18 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <Link
+            {!session && <Link
               href="/signup"
               className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500"
             >
               <span className="text-white">Start for free</span>
-            </Link>
-            <Link
+            </Link>}
+            {session && <Link
               href="/dashboard"
-              className="inline-flex items-center justify-center rounded-full border border-teal-200 bg-white px-6 py-3 text-sm font-semibold text-teal-600 transition hover:border-teal-300"
+              className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold transition hover:border-teal-500"
             >
-              Explore the dashboard
-            </Link>
+              <span className="text-white">Explore the dashboard</span>
+            </Link>}
           </div>
         </div>
       </section>
@@ -100,7 +106,8 @@ export default function Home() {
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
                     {step.number}
                   </span>
-                  </div>
+                  <step.icon className="h-6 w-6 text-teal-600" />
+                </div>
                 <h3 className="text-lg font-semibold text-[#0f172a]">{step.title}</h3>
                 <p className="text-sm text-neutral-600">{step.body}</p>
               </div>
