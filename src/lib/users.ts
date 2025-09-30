@@ -32,10 +32,34 @@ export type CodeforcesConnection = {
   lastSyncedAt?: Date;
 };
 
+export type CodechefConnection = {
+  username: string;
+  rating?: number;
+  highestRating?: number;
+  stars?: string;
+  globalRank?: number;
+  countryRank?: number;
+  fullySolved?: number;
+  partiallySolved?: number;
+  lastSyncedAt?: Date;
+};
+
+export type GeeksforgeeksConnection = {
+  username: string;
+  codingScore?: number;
+  totalProblemsSolved?: number;
+  instituteRank?: number;
+  schoolRank?: number;
+  streak?: number;
+  lastSyncedAt?: Date;
+};
+
 export type UserConnections = {
   github?: GitHubConnection;
   leetcode?: LeetCodeConnection;
   codeforces?: CodeforcesConnection;
+  codechef?: CodechefConnection;
+  geeksforgeeks?: GeeksforgeeksConnection;
 };
 
 export type UserDocument = {
@@ -357,6 +381,122 @@ export const removeCodeforcesConnectionForUser = async (userId: string): Promise
     {
       $unset: {
         "connections.codeforces": "",
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const updateCodechefConnectionForUser = async (
+  userId: string,
+  connection: CodechefConnection
+): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  const existingUser = await users.findOne(
+    { _id },
+    { projection: { connections: 1 } }
+  );
+
+  const existingConnection = existingUser?.connections?.codechef as
+    | CodechefConnection
+    | undefined;
+
+  const mergedConnection: CodechefConnection = {
+    ...existingConnection,
+    ...connection,
+    lastSyncedAt: connection.lastSyncedAt ?? existingConnection?.lastSyncedAt ?? new Date(),
+  };
+
+  await users.updateOne(
+    { _id },
+    {
+      $set: {
+        "connections.codechef": mergedConnection,
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const removeCodechefConnectionForUser = async (userId: string): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  await users.updateOne(
+    { _id },
+    {
+      $unset: {
+        "connections.codechef": "",
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const updateGeeksforgeeksConnectionForUser = async (
+  userId: string,
+  connection: GeeksforgeeksConnection
+): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  const existingUser = await users.findOne(
+    { _id },
+    { projection: { connections: 1 } }
+  );
+
+  const existingConnection = existingUser?.connections?.geeksforgeeks as
+    | GeeksforgeeksConnection
+    | undefined;
+
+  const mergedConnection: GeeksforgeeksConnection = {
+    ...existingConnection,
+    ...connection,
+    lastSyncedAt: connection.lastSyncedAt ?? existingConnection?.lastSyncedAt ?? new Date(),
+  };
+
+  await users.updateOne(
+    { _id },
+    {
+      $set: {
+        "connections.geeksforgeeks": mergedConnection,
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const removeGeeksforgeeksConnectionForUser = async (userId: string): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  await users.updateOne(
+    { _id },
+    {
+      $unset: {
+        "connections.geeksforgeeks": "",
       },
       $set: {
         updatedAt: new Date(),

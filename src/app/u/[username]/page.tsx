@@ -4,7 +4,15 @@ import { notFound } from "next/navigation";
 import { GitHubCard } from "@/components/profile/github-card";
 import { LeetCodeCard } from "@/components/profile/leetcode-card";
 import { CodeforcesCard } from "@/components/profile/codeforces-card";
-import { getCodeforcesPreview, getGitHubPreview, getLeetCodePreview } from "@/lib/integrations";
+import { CodechefCard } from "@/components/profile/codechef-card";
+import { GeeksforgeeksCard } from "@/components/profile/geeksforgeeks-card";
+import {
+  getCodechefPreview,
+  getCodeforcesPreview,
+  getGeeksforgeeksPreview,
+  getGitHubPreview,
+  getLeetCodePreview,
+} from "@/lib/integrations";
 import { findUserByUsername } from "@/lib/users";
 
 type ProfilePageProps = {
@@ -21,14 +29,28 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const displayName = user.name ?? user.username ?? params.username;
-  const [githubPreview, leetCodePreview, codeforcesPreview] = await Promise.all([
+  const [
+    githubPreview,
+    leetCodePreview,
+    codeforcesPreview,
+    codechefPreview,
+    geeksforgeeksPreview,
+  ] = await Promise.all([
     getGitHubPreview(user),
     getLeetCodePreview(user),
     getCodeforcesPreview(user),
+    getCodechefPreview(user),
+    getGeeksforgeeksPreview(user),
   ]);
 
-  const totalIntegrations = 3;
-  const connectedIntegrations = [githubPreview, leetCodePreview, codeforcesPreview].filter(
+  const totalIntegrations = 5;
+  const connectedIntegrations = [
+    githubPreview,
+    leetCodePreview,
+    codeforcesPreview,
+    codechefPreview,
+    geeksforgeeksPreview,
+  ].filter(
     (preview) => preview.status === "connected"
   ).length;
   const createdAt = user.createdAt
@@ -97,6 +119,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           <GitHubCard data={githubPreview} />
           <LeetCodeCard data={leetCodePreview} />
           <CodeforcesCard data={codeforcesPreview} />
+          <CodechefCard data={codechefPreview} />
+          <GeeksforgeeksCard data={geeksforgeeksPreview} />
         </div>
       </section>
     </main>

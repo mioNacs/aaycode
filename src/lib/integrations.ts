@@ -2,6 +2,8 @@ import type { UserWithId } from "./users";
 import { getGitHubStatsForUser } from "./github/cache";
 import { getLeetCodeStatsForUser } from "./leetcode/cache";
 import { getCodeforcesStatsForUser } from "./codeforces/cache";
+import { getCodechefStatsForUser } from "./codechef/cache";
+import { getGeeksforgeeksStatsForUser } from "./geeksforgeeks/cache";
 
 export type IntegrationStatus = "connected" | "disconnected" | "error";
 
@@ -30,6 +32,8 @@ const formatCount = (value?: number): string => {
 const GITHUB_STATS_MAX_AGE_HOURS = 12;
 const LEETCODE_STATS_MAX_AGE_HOURS = 12;
 const CODEFORCES_STATS_MAX_AGE_HOURS = 6;
+const CODECHEF_STATS_MAX_AGE_HOURS = 12;
+const GFG_STATS_MAX_AGE_HOURS = 12;
 
 const normalizeDate = (value?: Date | null): Date | null => {
   if (!value) {
@@ -214,5 +218,130 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt ?? connection.lastContestAt),
+  };
+}
+
+export async function getCodechefPreview(user: UserWithId): Promise<IntegrationPreview> {
+  const connection = user.connections?.codechef;
+
+  if (!connection) {
+    return {
+      status: "disconnected",
+      stats: [
+        { label: "Rating", value: "—" },
+        { label: "Highest rating", value: "—" },
+        { label: "Global rank", value: "—" },
+        { label: "Fully solved", value: "—" },
+      ],
+      note: "Connect your CodeChef account to show ratings, stars, and solved problems.",
+    };
+  }
+
+  const stats = connection.username
+    ? await getCodechefStatsForUser(
+        user._id.toString(),
+        connection.username,
+        CODECHEF_STATS_MAX_AGE_HOURS
+      )
+    : null;
+
+  const rating = stats?.rating ?? connection.rating;
+  const highestRating = stats?.highestRating ?? connection.highestRating;
+  const globalRank = stats?.globalRank ?? connection.globalRank;
+  const countryRank = stats?.countryRank ?? connection.countryRank;
+  const fullySolved = stats?.fullySolved ?? connection.fullySolved;
+  const partiallySolved = stats?.partiallySolved ?? connection.partiallySolved;
+  const stars = stats?.stars ?? connection.stars;
+
+  return {
+    status: "connected",
+    username: connection.username,
+    stats: [
+      {
+        label: "Rating",
+        value: rating !== undefined && rating !== null ? rating.toString() : "—",
+        helper: stars ?? undefined,
+      },
+      {
+        label: "Highest rating",
+        value:
+          highestRating !== undefined && highestRating !== null
+            ? highestRating.toString()
+            : "—",
+      },
+      {
+        label: "Global rank",
+        value: globalRank ? `#${formatCount(globalRank)}` : "—",
+        helper: countryRank ? `Country #${formatCount(countryRank)}` : undefined,
+      },
+      {
+        label: "Fully solved",
+        value: fullySolved !== undefined && fullySolved !== null ? formatCount(fullySolved) : "—",
+        helper:
+          partiallySolved !== undefined && partiallySolved !== null
+            ? `Partial ${formatCount(partiallySolved)}`
+            : undefined,
+      },
+    ],
+    lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
+  };
+}
+
+export async function getGeeksforgeeksPreview(user: UserWithId): Promise<IntegrationPreview> {
+  const connection = user.connections?.geeksforgeeks;
+
+  if (!connection) {
+    return {
+      status: "disconnected",
+      stats: [
+        { label: "Coding score", value: "—" },
+        { label: "Problems solved", value: "—" },
+        { label: "Institute rank", value: "—" },
+        { label: "Current streak", value: "—" },
+      ],
+      note: "Connect GeeksforGeeks to display coding score, ranks, and streak information.",
+    };
+  }
+
+  const stats = connection.username
+    ? await getGeeksforgeeksStatsForUser(
+        user._id.toString(),
+        connection.username,
+        GFG_STATS_MAX_AGE_HOURS
+      )
+    : null;
+
+  const codingScore = stats?.codingScore ?? connection.codingScore;
+  const totalProblemsSolved = stats?.totalProblemsSolved ?? connection.totalProblemsSolved;
+  const instituteRank = stats?.instituteRank ?? connection.instituteRank;
+  const schoolRank = stats?.schoolRank ?? connection.schoolRank;
+  const streak = stats?.streak ?? connection.streak;
+
+  return {
+    status: "connected",
+    username: connection.username,
+    stats: [
+      {
+        label: "Coding score",
+        value: codingScore !== undefined && codingScore !== null ? formatCount(codingScore) : "—",
+      },
+      {
+        label: "Problems solved",
+        value:
+          totalProblemsSolved !== undefined && totalProblemsSolved !== null
+            ? formatCount(totalProblemsSolved)
+            : "—",
+      },
+      {
+        label: "Institute rank",
+        value: instituteRank ? `#${formatCount(instituteRank)}` : "—",
+        helper: schoolRank ? `School #${formatCount(schoolRank)}` : undefined,
+      },
+      {
+        label: "Current streak",
+        value: streak !== undefined && streak !== null ? `${streak}` : "—",
+      },
+    ],
+    lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
   };
 }
