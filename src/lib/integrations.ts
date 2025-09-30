@@ -1,6 +1,7 @@
 import type { UserWithId } from "./users";
 import { getGitHubStatsForUser } from "./github/cache";
 import { getLeetCodeStatsForUser } from "./leetcode/cache";
+import { getCodeforcesStatsForUser } from "./codeforces/cache";
 
 export type IntegrationStatus = "connected" | "disconnected" | "error";
 
@@ -28,6 +29,7 @@ const formatCount = (value?: number): string => {
 
 const GITHUB_STATS_MAX_AGE_HOURS = 12;
 const LEETCODE_STATS_MAX_AGE_HOURS = 12;
+const CODEFORCES_STATS_MAX_AGE_HOURS = 6;
 
 const normalizeDate = (value?: Date | null): Date | null => {
   if (!value) {
@@ -162,14 +164,55 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
     };
   }
 
+  const stats = connection.handle
+    ? await getCodeforcesStatsForUser(
+        user._id.toString(),
+        connection.handle,
+        CODEFORCES_STATS_MAX_AGE_HOURS
+      )
+    : null;
+
   return {
     status: "connected",
     username: connection.handle,
     stats: [
-      { label: "Current rating", value: connection.rating ? connection.rating.toString() : "—" },
-      { label: "Max rating", value: connection.maxRating ? connection.maxRating.toString() : "—" },
-      { label: "Rank", value: connection.rank ?? "—" },
+      {
+        label: "Current rating",
+        value:
+          stats?.rating !== undefined && stats?.rating !== null
+            ? stats.rating.toString()
+            : connection.rating
+            ? connection.rating.toString()
+            : "—",
+      },
+      {
+        label: "Max rating",
+        value:
+          stats?.maxRating !== undefined && stats?.maxRating !== null
+            ? stats.maxRating.toString()
+            : connection.maxRating
+            ? connection.maxRating.toString()
+            : "—",
+      },
+      {
+        label: "Rank",
+        value: stats?.rank ?? connection.rank ?? "—",
+        helper:
+          stats?.lastContestName && stats.lastContestDate
+            ? `${stats.lastContestName} · ${new Intl.DateTimeFormat("en", {
+                month: "short",
+                day: "numeric",
+              }).format(stats.lastContestDate)}`
+            : undefined,
+      },
+      {
+        label: "Friends",
+        value:
+          stats?.friendOfCount !== undefined && stats?.friendOfCount !== null
+            ? formatCount(stats.friendOfCount)
+            : "—",
+      },
     ],
-    lastSyncedAt: normalizeDate(connection.lastSyncedAt ?? connection.lastContestAt),
+    lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt ?? connection.lastContestAt),
   };
 }

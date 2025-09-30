@@ -6,6 +6,8 @@ import type { UserConnections } from "@/lib/users";
 import { ConnectLeetCodeButton } from "./connect-leetcode-button";
 import { DisconnectGitHubButton } from "./disconnect-github-button";
 import { DisconnectLeetCodeButton } from "./disconnect-leetcode-button";
+import { ConnectCodeforcesButton } from "./connect-codeforces-button";
+import { DisconnectCodeforcesButton } from "./disconnect-codeforces-button";
 
 type ConnectedServicesSectionProps = {
   connections?: UserConnections;
@@ -64,6 +66,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
   const leetCodeConnection = connections?.leetcode;
   const leetCodeLastSynced = leetCodeConnection?.lastSyncedAt
     ? formatLastSynced(leetCodeConnection.lastSyncedAt)
+    : null;
+  const codeforcesConnection = connections?.codeforces;
+  const codeforcesLastSynced = codeforcesConnection?.lastSyncedAt
+    ? formatLastSynced(codeforcesConnection.lastSyncedAt)
     : null;
 
   return (
@@ -124,16 +130,27 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
 
         <ServiceRow
           title="Codeforces"
-          description="Not connected"
-          helper={<span>Coming soon.</span>}
+          description={
+            codeforcesConnection?.handle
+              ? `Connected as @${codeforcesConnection.handle}`
+              : "Not connected"
+          }
+          helper={
+            codeforcesConnection?.lastSyncedAt
+              ? codeforcesLastSynced
+                ? `Last synced ${codeforcesLastSynced}`
+                : "Sync time unavailable."
+              : "Add your Codeforces handle to surface rating, rank, and recent contest placements."
+          }
           action={
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-400 disabled:cursor-not-allowed disabled:text-neutral-300"
-            >
-              Connect
-            </button>
+            codeforcesConnection ? (
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <ConnectCodeforcesButton handle={codeforcesConnection.handle} />
+                <DisconnectCodeforcesButton />
+              </div>
+            ) : (
+              <ConnectCodeforcesButton handle={null} />
+            )
           }
         />
       </div>

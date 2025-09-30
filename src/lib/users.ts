@@ -307,6 +307,64 @@ export const removeLeetCodeConnectionForUser = async (userId: string): Promise<v
   );
 };
 
+export const updateCodeforcesConnectionForUser = async (
+  userId: string,
+  connection: CodeforcesConnection
+): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  const existingUser = await users.findOne(
+    { _id },
+    { projection: { connections: 1 } }
+  );
+
+  const existingConnection = existingUser?.connections?.codeforces as
+    | CodeforcesConnection
+    | undefined;
+
+  const mergedConnection: CodeforcesConnection = {
+    ...existingConnection,
+    ...connection,
+    lastSyncedAt: connection.lastSyncedAt ?? existingConnection?.lastSyncedAt ?? new Date(),
+  };
+
+  await users.updateOne(
+    { _id },
+    {
+      $set: {
+        "connections.codeforces": mergedConnection,
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const removeCodeforcesConnectionForUser = async (userId: string): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  await users.updateOne(
+    { _id },
+    {
+      $unset: {
+        "connections.codeforces": "",
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
 export const ensureUserHasUsername = async (
   userId: string,
   preferredName?: string | null,
