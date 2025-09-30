@@ -3,6 +3,41 @@ import { ObjectId } from "mongodb";
 
 import clientPromise from "@/dbConfig/dbConfig";
 
+export type GitHubConnection = {
+  username: string;
+  profileUrl?: string;
+  avatarUrl?: string;
+  publicRepos?: number;
+  followers?: number;
+  totalStars?: number;
+  topLanguage?: string;
+  lastSyncedAt?: Date;
+};
+
+export type LeetCodeConnection = {
+  username: string;
+  totalSolved?: number;
+  contestRating?: number;
+  ranking?: number;
+  badges?: number;
+  lastSyncedAt?: Date;
+};
+
+export type CodeforcesConnection = {
+  handle: string;
+  rating?: number;
+  maxRating?: number;
+  rank?: string;
+  lastContestAt?: Date;
+  lastSyncedAt?: Date;
+};
+
+export type UserConnections = {
+  github?: GitHubConnection;
+  leetcode?: LeetCodeConnection;
+  codeforces?: CodeforcesConnection;
+};
+
 export type UserDocument = {
   name?: string | null;
   email: string;
@@ -10,6 +45,7 @@ export type UserDocument = {
   image?: string | null;
   hashedPassword?: string;
   username?: string | null;
+  connections?: UserConnections;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -150,6 +186,63 @@ export const updateUsernameForUser = async (
     {
       $set: {
         username: normalizedUsername,
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const updateGitHubConnectionForUser = async (
+  userId: string,
+  connection: GitHubConnection
+): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  const existingUser = await users.findOne(
+    { _id },
+    { projection: { connections: 1 } }
+  );
+
+  const existingConnection = existingUser?.connections?.github as
+    | GitHubConnection
+    | undefined;
+  const mergedConnection: GitHubConnection = {
+    ...existingConnection,
+    ...connection,
+    lastSyncedAt: connection.lastSyncedAt ?? existingConnection?.lastSyncedAt ?? new Date(),
+  };
+
+  await users.updateOne(
+    { _id },
+    {
+      $set: {
+        "connections.github": mergedConnection,
+        updatedAt: new Date(),
+      },
+    }
+  );
+};
+
+export const removeGitHubConnectionForUser = async (userId: string): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const users = await getUsersCollection();
+  const _id = new ObjectId(userId);
+
+  await users.updateOne(
+    { _id },
+    {
+      $unset: {
+        "connections.github": "",
+      },
+      $set: {
         updatedAt: new Date(),
       },
     }

@@ -7,63 +7,39 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 
 import clientPromise from "@/dbConfig/dbConfig";
+import { env } from "@/config";
 import {
   ensureUserHasUsername,
   findUserByEmail,
   findUserById,
+  updateGitHubConnectionForUser,
 } from "./users";
-
-const requiredEnv = (key: string): string => {
-  const value = process.env[key];
-
-  if (!value || value.length === 0) {
-    throw new Error(`Missing environment variable: ${key}`);
-  }
-
-  return value;
-};
-
-const optionalPort = (key: string, defaultValue: number): number => {
-  const raw = process.env[key];
-
-  if (!raw || raw.length === 0) {
-    return defaultValue;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    throw new Error(`Environment variable ${key} must be a positive integer.`);
-  }
-
-  return parsed;
-};
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
-  secret: requiredEnv("NEXTAUTH_SECRET"),
+  secret: env.nextAuth.secret,
   session: {
     strategy: "jwt",
   },
   providers: [
     GoogleProvider({
-      clientId: requiredEnv("GOOGLE_CLIENT_ID"),
-      clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+      clientId: env.oauth.google.clientId,
+      clientSecret: env.oauth.google.clientSecret,
     }),
     GitHubProvider({
-      clientId: requiredEnv("GITHUB_CLIENT_ID"),
-      clientSecret: requiredEnv("GITHUB_CLIENT_SECRET"),
+      clientId: env.oauth.github.clientId,
+      clientSecret: env.oauth.github.clientSecret,
     }),
     EmailProvider({
       server: {
-        host: requiredEnv("EMAIL_SERVER_HOST"),
-        port: optionalPort("EMAIL_SERVER_PORT", 587),
+        host: env.email.server.host,
+        port: env.email.server.port,
         auth: {
-          user: requiredEnv("EMAIL_SERVER_USER"),
-          pass: requiredEnv("EMAIL_SERVER_PASSWORD"),
+          user: env.email.server.user,
+          pass: env.email.server.password,
         },
       },
-      from: requiredEnv("EMAIL_FROM"),
+      from: env.email.from,
       maxAge: 10 * 60, // 10 minutes
     }),
     CredentialsProvider({
@@ -113,6 +89,28 @@ export const authOptions: NextAuthOptions = {
     verifyRequest: "/login/verify",
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "github" && user?.id) {
+        try {
+          const profileData = profile as Record<string, unknown> | null;
+          const username =
+            (profileData?.login as string | undefined) ?? account.providerAccountId;
+
+          await updateGitHubConnectionForUser(user.id, {
+            username,
+            profileUrl: profileData?.html_url as string | undefined,
+            avatarUrl: profileData?.avatar_url as string | undefined,
+            publicRepos: profileData?.public_repos as number | undefined,
+            followers: profileData?.followers as number | undefined,
+            lastSyncedAt: new Date(),
+          });
+        } catch (error) {
+          console.error("[next-auth] Failed to update GitHub connection", error);
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

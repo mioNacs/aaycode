@@ -1,11 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 type Status = "idle" | "pending" | "error";
+type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
+
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 export default function SignUpPage() {
 	const router = useRouter();
@@ -17,9 +20,84 @@ export default function SignUpPage() {
 	const [name, setName] = useState("");
 	const [status, setStatus] = useState<Status>("idle");
 	const [message, setMessage] = useState<string | null>(null);
+	const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
+	const [usernameFeedback, setUsernameFeedback] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!username) {
+			setUsernameStatus("idle");
+			setUsernameFeedback(null);
+			return;
+		}
+
+		const normalized = username.trim().toLowerCase();
+
+		if (!USERNAME_PATTERN.test(normalized)) {
+			setUsernameStatus("invalid");
+			setUsernameFeedback("Use 3-20 characters with letters, numbers, or underscores.");
+			return;
+		}
+
+		setUsernameStatus("checking");
+		setUsernameFeedback("Checking availability…");
+
+		const controller = new AbortController();
+		const timeout = window.setTimeout(async () => {
+			try {
+				const response = await fetch(
+					`/api/user/username/available?username=${encodeURIComponent(normalized)}`,
+					{ signal: controller.signal }
+				);
+
+				if (!response.ok) {
+					throw new Error("Request failed");
+				}
+
+				const result: { available: boolean; reason?: string } = await response.json();
+
+				if (result.available) {
+					setUsernameStatus("available");
+					setUsernameFeedback("Nice! Username is available.");
+				} else {
+					setUsernameStatus("taken");
+					setUsernameFeedback(result.reason ?? "That username is already taken.");
+				}
+			} catch (error) {
+				if (controller.signal.aborted) {
+					return;
+				}
+				console.error("Username availability check failed", error);
+				setUsernameStatus("error");
+				setUsernameFeedback("Couldn't verify username. Try again.");
+			}
+		}, 500);
+
+		return () => {
+			controller.abort();
+			window.clearTimeout(timeout);
+		};
+	}, [username]);
+
+	const isSubmitDisabled = useMemo(() => {
+		if (status === "pending") {
+			return true;
+		}
+
+		if (usernameStatus === "checking" || usernameStatus === "taken" || usernameStatus === "invalid") {
+			return true;
+		}
+
+		return false;
+	}, [status, usernameStatus]);
 
 	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
+
+		if (usernameStatus === "taken" || usernameStatus === "invalid") {
+			setStatus("error");
+			setMessage("Please choose an available username before continuing.");
+			return;
+		}
 
 		if (password !== confirmPassword) {
 			setStatus("error");
@@ -112,8 +190,18 @@ export default function SignUpPage() {
 								placeholder="your_handle"
 								disabled={status === "pending"}
 							/>
-							<p className="text-xs text-neutral-500">
-								3-20 characters. Letters, numbers, and underscores only.
+							<p
+								className={`text-xs ${
+									usernameStatus === "available"
+										? "text-emerald-600"
+										: usernameStatus === "taken" || usernameStatus === "invalid" || usernameStatus === "error"
+										? "text-rose-500"
+										: usernameStatus === "checking"
+										? "text-teal-600"
+										: "text-neutral-500"
+								}`}
+							>
+								{usernameFeedback ?? "3-20 characters. Letters, numbers, and underscores only."}
 							</p>
 						</div>
 					</div>
@@ -182,7 +270,7 @@ export default function SignUpPage() {
 					<button
 						type="submit"
 						className="w-full rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-teal-400"
-						disabled={status === "pending"}
+						disabled={isSubmitDisabled}
 					>
 						{status === "pending" ? "Creating account…" : "Create account"}
 					</button>
