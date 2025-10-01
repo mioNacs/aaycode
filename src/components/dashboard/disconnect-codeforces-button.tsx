@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FiX } from "react-icons/fi";
+import { toast } from "sonner";
 
 export function DisconnectCodeforcesButton() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
     startTransition(async () => {
-      setError(null);
-
       try {
         const response = await fetch("/api/integrations/codeforces", {
           method: "DELETE",
@@ -23,9 +21,10 @@ export function DisconnectCodeforcesButton() {
           throw new Error(payload?.error ?? "Failed to disconnect Codeforces");
         }
 
+        toast.success("Codeforces disconnected");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to disconnect Codeforces");
+        toast.error(err instanceof Error ? err.message : "Unable to disconnect Codeforces");
       }
     });
   };
@@ -41,7 +40,6 @@ export function DisconnectCodeforcesButton() {
         <FiX className="h-4 w-4" />
         {isPending ? "Disconnecting…" : "Disconnect"}
       </button>
-      {error ? <p className="text-xs text-rose-500">{error}</p> : null}
     </div>
   );
 }

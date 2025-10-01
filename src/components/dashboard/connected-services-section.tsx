@@ -12,6 +12,7 @@ import { ConnectCodechefButton } from "./connect-codechef-button";
 import { DisconnectCodechefButton } from "./disconnect-codechef-button";
 import { ConnectGeeksforgeeksButton } from "./connect-geeksforgeeks-button";
 import { DisconnectGeeksforgeeksButton } from "./disconnect-geeksforgeeks-button";
+import { SyncIntegrationButton } from "./sync-integration-button";
 
 type ConnectedServicesSectionProps = {
   connections?: UserConnections;
@@ -106,6 +107,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
                   connected
                   username={githubConnection.username}
                 />
+                <SyncIntegrationButton
+                  endpoint="/api/integrations/github/sync"
+                  serviceName="GitHub"
+                />
                 <DisconnectGitHubButton />
               </div>
             ) : (
@@ -132,6 +137,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
             leetCodeConnection ? (
               <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <ConnectLeetCodeButton username={leetCodeConnection.username} />
+                <SyncIntegrationButton
+                  endpoint="/api/integrations/leetcode/sync"
+                  serviceName="LeetCode"
+                />
                 <DisconnectLeetCodeButton />
               </div>
             ) : (
@@ -158,6 +167,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
             codeforcesConnection ? (
               <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <ConnectCodeforcesButton handle={codeforcesConnection.handle} />
+                <SyncIntegrationButton
+                  endpoint="/api/integrations/codeforces/sync"
+                  serviceName="Codeforces"
+                />
                 <DisconnectCodeforcesButton />
               </div>
             ) : (
@@ -184,6 +197,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
             codechefConnection ? (
               <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <ConnectCodechefButton username={codechefConnection.username} />
+                <SyncIntegrationButton
+                  endpoint="/api/integrations/codechef/sync"
+                  serviceName="CodeChef"
+                />
                 <DisconnectCodechefButton />
               </div>
             ) : (
@@ -210,6 +227,10 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
             geeksforgeeksConnection ? (
               <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <ConnectGeeksforgeeksButton username={geeksforgeeksConnection.username} />
+                <SyncIntegrationButton
+                  endpoint="/api/integrations/geeksforgeeks/sync"
+                  serviceName="GeeksforGeeks"
+                />
                 <DisconnectGeeksforgeeksButton />
               </div>
             ) : (

@@ -129,3 +129,32 @@ export const getGeeksforgeeksStatsForUser = async (
 
   return fresh;
 };
+
+export const refreshGeeksforgeeksStatsForUser = async (
+  userId: string,
+  username: string
+): Promise<GeeksforgeeksStats | null> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const fresh = await fetchGeeksforgeeksStatsFromApi(username);
+
+  if (!fresh) {
+    return null;
+  }
+
+  await upsertGeeksforgeeksStatsForUser(userId, fresh);
+
+  await updateGeeksforgeeksConnectionForUser(userId, {
+    username: fresh.username,
+    codingScore: fresh.codingScore ?? undefined,
+    totalProblemsSolved: fresh.totalProblemsSolved ?? undefined,
+    instituteRank: fresh.instituteRank ?? undefined,
+    schoolRank: fresh.schoolRank ?? undefined,
+    streak: fresh.streak ?? undefined,
+    lastSyncedAt: fresh.fetchedAt,
+  });
+
+  return fresh;
+};

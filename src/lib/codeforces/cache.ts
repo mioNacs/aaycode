@@ -132,3 +132,31 @@ export const getCodeforcesStatsForUser = async (
 
   return fresh;
 };
+
+export const refreshCodeforcesStatsForUser = async (
+  userId: string,
+  handle: string
+): Promise<CodeforcesStats | null> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const fresh = await fetchCodeforcesStatsFromApi(handle);
+
+  if (!fresh) {
+    return null;
+  }
+
+  await upsertCodeforcesStatsForUser(userId, fresh);
+
+  await updateCodeforcesConnectionForUser(userId, {
+    handle: fresh.handle,
+    rating: fresh.rating ?? undefined,
+    maxRating: fresh.maxRating ?? undefined,
+    rank: fresh.rank ?? undefined,
+    lastContestAt: fresh.lastContestDate ?? undefined,
+    lastSyncedAt: fresh.fetchedAt,
+  });
+
+  return fresh;
+};

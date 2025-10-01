@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FiX } from "react-icons/fi";
+import { toast } from "sonner";
 
 export function DisconnectLeetCodeButton() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
     startTransition(async () => {
-      setError(null);
-
       try {
         const response = await fetch("/api/integrations/leetcode", {
           method: "DELETE",
@@ -23,9 +21,10 @@ export function DisconnectLeetCodeButton() {
           throw new Error(payload?.error ?? "Failed to disconnect LeetCode");
         }
 
+        toast.success("LeetCode disconnected");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to disconnect");
+        toast.error(err instanceof Error ? err.message : "Unable to disconnect LeetCode");
       }
     });
   };
@@ -41,7 +40,6 @@ export function DisconnectLeetCodeButton() {
         <FiX className="h-4 w-4" />
         {isPending ? "Disconnecting…" : "Disconnect"}
       </button>
-      {error ? <p className="text-xs text-rose-500">{error}</p> : null}
     </div>
   );
 }

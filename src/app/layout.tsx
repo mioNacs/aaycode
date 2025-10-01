@@ -6,6 +6,7 @@ import "./globals.css";
 
 import { SiteHeader } from "@/components/site-header";
 import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
             </div>
           </footer>
         </AuthSessionProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

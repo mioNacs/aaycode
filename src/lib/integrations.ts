@@ -66,8 +66,12 @@ export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPre
       )
     : null;
 
+  const fetchFailed = Boolean(connection.username && !stats);
+  const status: IntegrationStatus = fetchFailed ? "error" : "connected";
+  const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
   return {
-    status: "connected",
+    status,
     username: connection.username,
     stats: [
       {
@@ -88,6 +92,7 @@ export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPre
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
+    note: errorNote,
   };
 }
 
@@ -114,8 +119,12 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
       )
     : null;
 
+  const fetchFailed = Boolean(connection.username && !stats);
+  const status: IntegrationStatus = fetchFailed ? "error" : "connected";
+  const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
   return {
-    status: "connected",
+    status,
     username: connection.username,
     stats: [
       {
@@ -150,6 +159,7 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
+    note: errorNote,
   };
 }
 
@@ -176,8 +186,12 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
       )
     : null;
 
+  const fetchFailed = Boolean(connection.handle && !stats);
+  const status: IntegrationStatus = fetchFailed ? "error" : "connected";
+  const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
   return {
-    status: "connected",
+    status,
     username: connection.handle,
     stats: [
       {
@@ -218,6 +232,7 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt ?? connection.lastContestAt),
+    note: errorNote,
   };
 }
 
@@ -245,6 +260,10 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
       )
     : null;
 
+  const fetchFailed = Boolean(connection.username && !stats);
+  const status: IntegrationStatus = fetchFailed ? "error" : "connected";
+  const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
   const rating = stats?.rating ?? connection.rating;
   const highestRating = stats?.highestRating ?? connection.highestRating;
   const globalRank = stats?.globalRank ?? connection.globalRank;
@@ -254,7 +273,7 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
   const stars = stats?.stars ?? connection.stars;
 
   return {
-    status: "connected",
+    status,
     username: connection.username,
     stats: [
       {
@@ -284,6 +303,7 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
+    note: errorNote,
   };
 }
 
@@ -311,6 +331,10 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
       )
     : null;
 
+  const fetchFailed = Boolean(connection.username && !stats);
+  const status: IntegrationStatus = fetchFailed ? "error" : "connected";
+  const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
   const codingScore = stats?.codingScore ?? connection.codingScore;
   const totalProblemsSolved = stats?.totalProblemsSolved ?? connection.totalProblemsSolved;
   const instituteRank = stats?.instituteRank ?? connection.instituteRank;
@@ -318,7 +342,7 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
   const streak = stats?.streak ?? connection.streak;
 
   return {
-    status: "connected",
+    status,
     username: connection.username,
     stats: [
       {
@@ -343,5 +367,6 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
+    note: errorNote,
   };
 }

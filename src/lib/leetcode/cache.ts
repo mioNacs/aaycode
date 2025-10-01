@@ -126,3 +126,31 @@ export const getLeetCodeStatsForUser = async (
 
   return fresh;
 };
+
+export const refreshLeetCodeStatsForUser = async (
+  userId: string,
+  username: string
+): Promise<LeetCodeStats | null> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const fresh = await fetchLeetCodeStatsFromApi(username);
+
+  if (!fresh) {
+    return null;
+  }
+
+  await upsertLeetCodeStatsForUser(userId, fresh);
+
+  await updateLeetCodeConnectionForUser(userId, {
+    username: fresh.username,
+    totalSolved: fresh.totalSolved,
+    contestRating: fresh.contestRating ?? undefined,
+    ranking: fresh.contestGlobalRanking ?? undefined,
+    badges: fresh.badges ?? undefined,
+    lastSyncedAt: fresh.fetchedAt,
+  });
+
+  return fresh;
+};
