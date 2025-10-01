@@ -126,3 +126,33 @@ export const getGitHubStatsForUser = async (
 
   return fresh;
 };
+
+export const refreshGitHubStatsForUser = async (
+  userId: string,
+  username: string
+): Promise<GitHubStats | null> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const fresh = await fetchGitHubStatsFromApi(username);
+
+  if (!fresh) {
+    return null;
+  }
+
+  await upsertGitHubStatsForUser(userId, fresh);
+
+  await updateGitHubConnectionForUser(userId, {
+    username: fresh.username,
+    profileUrl: fresh.profileUrl,
+    avatarUrl: fresh.avatarUrl,
+    publicRepos: fresh.publicRepos,
+    followers: fresh.followers,
+    totalStars: fresh.totalStars,
+    topLanguage: fresh.topLanguages[0]?.name,
+    lastSyncedAt: fresh.fetchedAt,
+  });
+
+  return fresh;
+};

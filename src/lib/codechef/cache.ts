@@ -129,3 +129,34 @@ export const getCodechefStatsForUser = async (
 
   return fresh;
 };
+
+export const refreshCodechefStatsForUser = async (
+  userId: string,
+  username: string
+): Promise<CodechefStats | null> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid user id");
+  }
+
+  const fresh = await fetchCodechefStatsFromApi(username);
+
+  if (!fresh) {
+    return null;
+  }
+
+  await upsertCodechefStatsForUser(userId, fresh);
+
+  await updateCodechefConnectionForUser(userId, {
+    username: fresh.username,
+    rating: fresh.rating ?? undefined,
+    highestRating: fresh.highestRating ?? undefined,
+    stars: fresh.stars ?? undefined,
+    globalRank: fresh.globalRank ?? undefined,
+    countryRank: fresh.countryRank ?? undefined,
+    fullySolved: fresh.fullySolved ?? undefined,
+    partiallySolved: fresh.partiallySolved ?? undefined,
+    lastSyncedAt: fresh.fetchedAt,
+  });
+
+  return fresh;
+};

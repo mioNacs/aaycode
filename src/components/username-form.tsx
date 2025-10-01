@@ -4,12 +4,13 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";
+import { toast } from "sonner";
 
 type UsernameFormProps = {
   currentUsername: string;
 };
 
-type Status = "idle" | "pending" | "success" | "error";
+type Status = "idle" | "pending";
 type UsernameStatus =
   | "idle"
   | "checking"
@@ -28,7 +29,6 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
   const [baseUsername, setBaseUsername] = useState(currentUsername);
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [usernameFeedback, setUsernameFeedback] = useState<string | null>(null);
 
@@ -123,46 +123,25 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
     return false;
   }, [status, usernameStatus]);
 
-  const messageMarkup =
-    message && (
-      <p
-        className={`text-sm ${
-          status === "error"
-            ? "text-red-600"
-            : status === "success"
-            ? "text-green-600"
-            : "text-neutral-500"
-        }`}
-      >
-        {message}
-      </p>
-    );
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (username === baseUsername) {
-      setMessage("That's already your username.");
-      setStatus("success");
+      toast.info("That's already your username.");
       return;
     }
 
     if (usernameStatus === "checking") {
-      setStatus("error");
-      setMessage("Please wait until username availability completes.");
+      toast.error("Please wait until username availability completes.");
       return;
     }
 
     if (usernameStatus === "invalid" || usernameStatus === "taken" || usernameStatus === "error") {
-      setStatus("error");
-      setMessage(
-        usernameFeedback ?? "Please resolve the username issue before saving."
-      );
+      toast.error(usernameFeedback ?? "Please resolve the username issue before saving.");
       return;
     }
 
     setStatus("pending");
-    setMessage(null);
 
     try {
       const response = await fetch("/api/user/username", {
@@ -179,8 +158,7 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
         throw new Error(payload.error ?? "Unable to update username.");
       }
 
-      setStatus("success");
-      setMessage("Username updated successfully.");
+      toast.success("Username updated successfully.");
 
       if (payload.username) {
         setBaseUsername(payload.username);
@@ -200,10 +178,9 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
       setIsEditing(false);
       router.refresh();
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Unexpected error.");
+      toast.error(error instanceof Error ? error.message : "Unexpected error.");
     } finally {
-      setStatus((previous) => (previous === "pending" ? "idle" : previous));
+      setStatus("idle");
     }
   };
 
@@ -248,7 +225,6 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
                 setIsEditing(false);
                 setUsername(baseUsername);
                 setStatus("idle");
-                setMessage(null);
                 setUsernameStatus("idle");
                 setUsernameFeedback(null);
               }}
@@ -287,7 +263,6 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
             type="button"
             onClick={() => {
               setStatus("idle");
-              setMessage(null);
               setIsEditing(true);
               setUsernameStatus("idle");
               setUsernameFeedback(null);
@@ -300,7 +275,6 @@ export function UsernameForm({ currentUsername }: UsernameFormProps) {
         </div>
       )}
 
-      {messageMarkup}
     </div>
   );
 }

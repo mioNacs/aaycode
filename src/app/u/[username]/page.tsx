@@ -6,6 +6,7 @@ import { LeetCodeCard } from "@/components/profile/leetcode-card";
 import { CodeforcesCard } from "@/components/profile/codeforces-card";
 import { CodechefCard } from "@/components/profile/codechef-card";
 import { GeeksforgeeksCard } from "@/components/profile/geeksforgeeks-card";
+import { ProfileSummaryCard } from "@/components/profile/profile-summary-card";
 import {
   getCodechefPreview,
   getCodeforcesPreview,
@@ -106,6 +107,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </span>
         </div>
       </header>
+
+      <ProfileSummaryCard
+        github={githubPreview}
+        leetcode={leetCodePreview}
+        codeforces={codeforcesPreview}
+        codechef={codechefPreview}
+        geeksforgeeks={geeksforgeeksPreview}
+      />
 
       <section className="space-y-6">
         <div className="space-y-2">
