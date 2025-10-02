@@ -9,26 +9,66 @@ import {
   toISODateString,
   type ServiceContributionSeries,
 } from "../contributions";
+import { buildLeetCodeHeaders, LEETCODE_GRAPHQL_ENDPOINT } from "./client";
 
-const LEETCODE_GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
-const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
-
-const calendarQuery = `
-  query userProfileCalendar($username: String!, $year: Int) {
-    userCalendar(username: $username, year: $year) {
-      calendarData
+const progressCalendarQuery = `
+  query userProgressCalendarV2($year: Int!, $month: Int!, $queryType: ProgressCalendarQueryTypeEnum!) {
+    userProgressCalendarV2(year: $year, month: $month, queryType: $queryType) {
+      dateSolvedInfoWithinMonth {
+        date
+        easySolvedNum
+        mediumSolvedNum
+        hardSolvedNum
+      }
+      dateSubmissionNumWithinMonth {
+        date
+        numSubmitted
+      }
     }
   }
 `;
 
-type CalendarResponse = {
-  data?: {
-    userCalendar?: {
-      calendarData?: string | null;
-    } | null;
-  };
-  errors?: Array<{ message?: string }>;
+const calendarQueryLegacy = `
+  query userProfileCalendar($username: String!, $year: Int) {
+    userProfileCalendar(username: $username, year: $year) {
+      submissionCalendar
+    }
+  }
+`;
+
+type GraphQLError = { message?: string };
+
+type GraphQLResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
 };
+
+type ProgressSolvedEntry = {
+  date: string;
+  easySolvedNum: number;
+  mediumSolvedNum: number;
+  hardSolvedNum: number;
+};
+
+type ProgressSubmissionEntry = {
+  date: string;
+  numSubmitted: number;
+};
+
+type ProgressCalendarData = {
+  userProgressCalendarV2?: {
+    dateSolvedInfoWithinMonth?: ProgressSolvedEntry[];
+    dateSubmissionNumWithinMonth?: ProgressSubmissionEntry[];
+  } | null;
+};
+
+
+type LegacyCalendarData = {
+  userProfileCalendar?: {
+    submissionCalendar?: string | null;
+  } | null;
+};
+
 
 type LeetCodeContributionDay = {
   date: string;
@@ -62,15 +102,15 @@ const normalizeDocument = (
   })),
 });
 
-const parseCalendarData = (calendarData?: string | null): Map<string, number> => {
+const parseSubmissionCalendar = (submissionCalendar?: string | null): Map<string, number> => {
   const map = new Map<string, number>();
 
-  if (!calendarData) {
+  if (!submissionCalendar) {
     return map;
   }
 
   try {
-    const parsed = JSON.parse(calendarData) as Record<string, number>;
+    const parsed = JSON.parse(submissionCalendar) as Record<string, number>;
 
     Object.entries(parsed).forEach(([timestamp, value]) => {
       const date = new Date(Number.parseInt(timestamp, 10) * 1000);
@@ -83,10 +123,169 @@ const parseCalendarData = (calendarData?: string | null): Map<string, number> =>
       map.set(iso, Number.isFinite(value) ? value : 0);
     });
   } catch (error) {
-    console.error("[leetcode] Failed to parse calendar data", error);
+    console.error("[leetcode] Failed to parse submission calendar", error);
   }
 
   return map;
+};
+
+const executeGraphQL = async <T>(
+  query: string,
+  variables: Record<string, unknown>,
+  operationName?: string,
+  signal?: AbortSignal
+): Promise<GraphQLResponse<T>> => {
+  const body: Record<string, unknown> = { query, variables };
+
+  if (operationName) {
+    body.operationName = operationName;
+  }
+
+  const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
+    method: "POST",
+    headers: buildLeetCodeHeaders(),
+    body: JSON.stringify(body),
+    next: { revalidate: 60 * 60 },
+    signal,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+
+    if (response.status === 401 || response.status === 403) {
+      console.warn(
+        "[leetcode] Calendar request unauthorized. Ensure LEETCODE_SESSION/LEETCODE_CSRF_TOKEN env vars are set."
+      );
+    }
+
+    throw new Error(`LeetCode calendar request failed (${response.status}): ${errorBody}`);
+  }
+
+  return (await response.json()) as GraphQLResponse<T>;
+};
+
+const mergeProgressEntries = (
+  values: Map<string, number>,
+  solvedEntries?: ProgressSolvedEntry[],
+  submissionEntries?: ProgressSubmissionEntry[]
+): void => {
+  solvedEntries?.forEach((entry) => {
+    if (!entry?.date) {
+      return;
+    }
+
+    const { easySolvedNum = 0, mediumSolvedNum = 0, hardSolvedNum = 0 } = entry;
+    const total = easySolvedNum + mediumSolvedNum + hardSolvedNum;
+
+    const iso = toISODateString(entry.date);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      return;
+    }
+
+    values.set(iso, (values.get(iso) ?? 0) + total);
+  });
+
+  submissionEntries?.forEach((entry) => {
+    if (!entry?.date) {
+      return;
+    }
+
+    const iso = toISODateString(entry.date);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      return;
+    }
+
+    if (!values.has(iso)) {
+      values.set(iso, entry.numSubmitted ?? 0);
+    }
+  });
+};
+
+const fetchProgressCalendarValues = async (year: number): Promise<Map<string, number> | null> => {
+  const values = new Map<string, number>();
+  let sawResponse = false;
+
+  for (let month = 1; month <= 12; month += 1) {
+    try {
+  const payload = await executeGraphQL<ProgressCalendarData>(
+        progressCalendarQuery,
+        {
+          year,
+          month,
+          queryType: "SOLVED",
+        },
+        "userProgressCalendarV2"
+      );
+
+      if (payload.errors?.length) {
+        const message = payload.errors.map((graphQLError) => graphQLError.message ?? "Unknown error").join(", ");
+        throw new Error(message);
+      }
+
+      const calendar = payload.data?.userProgressCalendarV2;
+
+      if (!calendar) {
+        continue;
+      }
+
+      sawResponse = true;
+
+      mergeProgressEntries(
+        values,
+        calendar.dateSolvedInfoWithinMonth,
+        calendar.dateSubmissionNumWithinMonth
+      );
+    } catch (error) {
+      console.error(`[leetcode] Failed to fetch progress calendar for ${year}-${month}`, error);
+      return null;
+    }
+  }
+
+  if (!sawResponse) {
+    console.warn(
+      "[leetcode] Progress calendar did not return any data. Ensure LEETCODE_SESSION/LEETCODE_CSRF_TOKEN env vars are set."
+    );
+    return null;
+  }
+
+  return values;
+};
+
+const fetchLegacyCalendarValues = async (
+  username: string,
+  year: number
+): Promise<Map<string, number> | null> => {
+  const payload = await executeGraphQL<LegacyCalendarData>(
+    calendarQueryLegacy,
+    {
+      username,
+      year,
+    },
+    "userProfileCalendar"
+  );
+
+  if (payload.errors?.length) {
+    const message = payload.errors.map((graphQLError) => graphQLError.message ?? "Unknown error").join(", ");
+    throw new Error(message);
+  }
+
+  const submissionCalendar = payload.data?.userProfileCalendar?.submissionCalendar;
+  return parseSubmissionCalendar(submissionCalendar);
+};
+
+const convertValuesToSamples = (
+  values: Map<string, number>,
+  year: number
+): LeetCodeContributionDay[] => {
+  const startOfYear = toISODateString(new Date(Date.UTC(year, 0, 1)));
+  const endOfYear = toISODateString(new Date(Date.UTC(year, 11, 31)));
+
+  return generateDateRange(startOfYear, endOfYear).map((date) => ({
+    date,
+    count: values.get(date) ?? 0,
+  }));
 };
 
 const fetchCalendarSamples = async (username: string, year: number): Promise<LeetCodeContributionDay[] | null> => {
@@ -97,46 +296,19 @@ const fetchCalendarSamples = async (username: string, year: number): Promise<Lee
   }
 
   try {
-    const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Referer: "https://leetcode.com",
-        "User-Agent": USER_AGENT,
-      },
-      body: JSON.stringify({
-        query: calendarQuery,
-        variables: {
-          username: normalizedUsername,
-          year,
-        },
-      }),
-      next: { revalidate: 60 * 60 },
-    });
+    const progressValues = await fetchProgressCalendarValues(year);
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`LeetCode calendar request failed (${response.status}): ${errorBody}`);
+    if (progressValues) {
+      return convertValuesToSamples(progressValues, year);
     }
 
-    const payload = (await response.json()) as CalendarResponse;
+    const legacyValues = await fetchLegacyCalendarValues(normalizedUsername, year);
 
-    if (payload.errors?.length) {
-      throw new Error(payload.errors.map((error) => error.message ?? "Unknown error").join(", "));
+    if (legacyValues) {
+      return convertValuesToSamples(legacyValues, year);
     }
 
-    const calendarData = payload.data?.userCalendar?.calendarData;
-    const values = parseCalendarData(calendarData);
-
-    const startOfYear = toISODateString(new Date(Date.UTC(year, 0, 1)));
-    const endOfYear = toISODateString(new Date(Date.UTC(year, 11, 31)));
-
-    const samples = generateDateRange(startOfYear, endOfYear).map((date) => ({
-      date,
-      count: values.get(date) ?? 0,
-    }));
-
-    return samples;
+    return null;
   } catch (error) {
     console.error("[leetcode] Failed to fetch calendar", error);
     return null;

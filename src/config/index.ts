@@ -51,6 +51,10 @@ export const env = {
       clientSecret: getRequiredEnv("GITHUB_CLIENT_SECRET"),
     },
   },
+  leetcode: {
+    session: getOptionalEnv("LEETCODE_SESSION"),
+    csrfToken: getOptionalEnv("LEETCODE_CSRF_TOKEN"),
+  },
   email: {
     from: getRequiredEnv("EMAIL_FROM"),
     server: {

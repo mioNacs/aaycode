@@ -18,20 +18,24 @@ import {
 import { getContributionSeriesForUser } from "@/lib/contribution-aggregator";
 import { findUserByUsername } from "@/lib/users";
 
+type ProfilePageParams = {
+  username: string;
+};
+
 type ProfilePageProps = {
-  params: {
-    username: string;
-  };
+  params: Promise<ProfilePageParams> | ProfilePageParams;
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const user = await findUserByUsername(params.username);
+  const resolvedParams = await params;
+
+  const user = await findUserByUsername(resolvedParams.username);
 
   if (!user) {
     notFound();
   }
 
-  const displayName = user.name ?? user.username ?? params.username;
+  const displayName = user.name ?? user.username ?? resolvedParams.username;
   const contributionsPromise = getContributionSeriesForUser(user).catch((error) => {
     console.error("[profile] Failed to load contributions", error);
     return null;
@@ -77,7 +81,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         year: "numeric",
       }).format(createdAt)
     : "Recently";
-  const profileSlug = `u/${params.username}`;
+  const profileSlug = `u/${resolvedParams.username}`;
 
   return (
     <main className="container flex min-h-[70vh] flex-col gap-12 py-16">
