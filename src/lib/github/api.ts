@@ -1,4 +1,5 @@
 import { env } from "@/config";
+import { load } from "cheerio";
 
 const GITHUB_API_ROOT = "https://api.github.com";
 
@@ -47,6 +48,11 @@ export type GitHubStats = {
   totalStars: number;
   topLanguages: GitHubLanguageStat[];
   fetchedAt: Date;
+};
+
+export type GitHubContributionDay = {
+  date: string;
+  count: number;
 };
 
 const fetchJson = async <T>(url: string): Promise<T> => {
@@ -157,6 +163,88 @@ export async function fetchGitHubStatsFromApi(
     }
 
     console.error("[github] Failed to fetch stats", error);
+    return null;
+  }
+}
+
+type ContributionRangeOptions = {
+  start?: string;
+  end?: string;
+};
+
+const parseContributionHtml = (html: string): GitHubContributionDay[] => {
+  const $ = load(html);
+  const samples: GitHubContributionDay[] = [];
+
+  $("svg g rect[data-date]").each((_, element) => {
+    const date = $(element).attr("data-date");
+    const rawCount = $(element).attr("data-count");
+
+    if (!date || !rawCount) {
+      return;
+    }
+
+    const count = Number.parseInt(rawCount, 10);
+
+    if (Number.isNaN(count)) {
+      return;
+    }
+
+    samples.push({
+      date,
+      count,
+    });
+  });
+
+  return samples;
+};
+
+export async function fetchGitHubContributionTimelineFromApi(
+  username: string,
+  options: ContributionRangeOptions = {}
+): Promise<GitHubContributionDay[] | null> {
+  const normalizedUsername = username.trim();
+  if (!normalizedUsername) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  if (options.start) {
+    params.set("from", options.start);
+  }
+  if (options.end) {
+    params.set("to", options.end);
+  }
+
+  const query = params.toString();
+  const contributionsUrl = `${GITHUB_API_ROOT.replace("api.", "")}/users/${encodeURIComponent(
+    normalizedUsername
+  )}/contributions${query ? `?${query}` : ""}`;
+
+  try {
+    const response = await fetch(contributionsUrl, {
+      cache: "no-store",
+      headers: {
+        "User-Agent": "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+
+      const errorBody = await response.text();
+      throw new Error(
+        `GitHub contributions request failed (${response.status}): ${errorBody.slice(0, 200)}`
+      );
+    }
+
+    const html = await response.text();
+    return parseContributionHtml(html);
+  } catch (error) {
+    console.error("[github] Failed to fetch contributions", error);
     return null;
   }
 }

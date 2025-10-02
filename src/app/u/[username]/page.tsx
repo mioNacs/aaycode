@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { GitHubCard } from "@/components/profile/github-card";
 import { LeetCodeCard } from "@/components/profile/leetcode-card";
 import { CodeforcesCard } from "@/components/profile/codeforces-card";
@@ -14,6 +15,7 @@ import {
   getGitHubPreview,
   getLeetCodePreview,
 } from "@/lib/integrations";
+import { getContributionSeriesForUser } from "@/lib/contribution-aggregator";
 import { findUserByUsername } from "@/lib/users";
 
 type ProfilePageProps = {
@@ -30,19 +32,28 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const displayName = user.name ?? user.username ?? params.username;
+  const contributionsPromise = getContributionSeriesForUser(user).catch((error) => {
+    console.error("[profile] Failed to load contributions", error);
+    return null;
+  });
+
   const [
     githubPreview,
     leetCodePreview,
     codeforcesPreview,
     codechefPreview,
     geeksforgeeksPreview,
+    contributionResult,
   ] = await Promise.all([
     getGitHubPreview(user),
     getLeetCodePreview(user),
     getCodeforcesPreview(user),
     getCodechefPreview(user),
     getGeeksforgeeksPreview(user),
+    contributionsPromise,
   ]);
+
+  const contributionWarnings = contributionResult?.warnings ?? [];
 
   const totalIntegrations = 5;
   const connectedIntegrations = [
@@ -115,6 +126,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         codechef={codechefPreview}
         geeksforgeeks={geeksforgeeksPreview}
       />
+
+      {contributionResult && (
+        <ContributionHeatmap
+          username={displayName}
+          series={contributionResult.series}
+          warnings={contributionWarnings}
+        />
+      )}
 
       <section className="space-y-6">
         <div className="space-y-2">
