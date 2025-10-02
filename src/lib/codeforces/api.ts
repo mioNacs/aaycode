@@ -1,10 +1,10 @@
-const CODEFORCES_API_ROOT = "https://codeforces.com/api";
+export const CODEFORCES_API_ROOT = "https://codeforces.com/api";
 
-const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
+export const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
 
 const SECONDS_TO_MS = 1000;
 
-const fetchJson = async <T>(url: string): Promise<T> => {
+export const fetchJson = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,

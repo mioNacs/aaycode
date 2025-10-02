@@ -1,6 +1,6 @@
-const GFG_PROFILE_BASE_URL = "https://www.geeksforgeeks.org/user/";
+export const GFG_PROFILE_BASE_URL = "https://www.geeksforgeeks.org/user/";
 
-const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
+export const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
 
 const SCRIPT_REGEX =
   /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i;
@@ -45,7 +45,7 @@ export type GeeksforgeeksStats = {
   fetchedAt: Date;
 };
 
-const extractNextData = (html: string): unknown => {
+export const extractNextData = (html: string): unknown => {
   const match = html.match(SCRIPT_REGEX);
 
   if (!match || !match[1]) {
@@ -55,7 +55,7 @@ const extractNextData = (html: string): unknown => {
   return JSON.parse(match[1]) as unknown;
 };
 
-const isProfileMissing = (html: string): boolean => {
+export const isProfileMissing = (html: string): boolean => {
   const normalized = html.toLowerCase();
   return (
     normalized.includes("profile not found") ||
@@ -64,7 +64,7 @@ const isProfileMissing = (html: string): boolean => {
   );
 };
 
-const getNested = (source: unknown, keys: string[]): unknown => {
+export const getNested = (source: unknown, keys: string[]): unknown => {
   return keys.reduce<unknown>((acc, key) => {
     if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
       return (acc as Record<string, unknown>)[key];

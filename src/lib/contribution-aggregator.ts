@@ -8,6 +8,9 @@ import {
 } from "./contributions";
 import { getGitHubContributionSeriesForUser } from "./github/contributions";
 import { getLeetCodeContributionSeriesForUser } from "./leetcode/contributions";
+import { getCodeforcesContributionSeriesForUser } from "./codeforces/contributions";
+import { getCodechefContributionSeriesForUser } from "./codechef/contributions";
+import { getGeeksforgeeksContributionSeriesForUser } from "./geeksforgeeks/contributions";
 
 const MS_PER_DAY = 86_400_000;
 const MAX_WINDOW_DAYS = 365;
@@ -101,6 +104,75 @@ export const getContributionSeriesForUser = async (
     }
   } else {
     warnings.push("LeetCode not connected.");
+  }
+
+  const codechefConnection = user.connections?.codechef;
+
+  if (codechefConnection?.username) {
+    const codechefSeries = await getCodechefContributionSeriesForUser(
+      user._id.toString(),
+      codechefConnection.username,
+      targetRange.start,
+      targetRange.end
+    );
+
+    if (codechefSeries) {
+      if (codechefSeries.samples.length === 0) {
+        warnings.push("CodeChef contributions returned no data for the requested range.");
+      }
+
+      sources.codechef = codechefSeries;
+    } else {
+      warnings.push("CodeChef contributions unavailable.");
+    }
+  } else {
+    warnings.push("CodeChef not connected.");
+  }
+
+  const codeforcesConnection = user.connections?.codeforces;
+
+  if (codeforcesConnection?.handle) {
+    const codeforcesSeries = await getCodeforcesContributionSeriesForUser(
+      user._id.toString(),
+      codeforcesConnection.handle,
+      targetRange.start,
+      targetRange.end
+    );
+
+    if (codeforcesSeries) {
+      if (codeforcesSeries.samples.length === 0) {
+        warnings.push("Codeforces contributions returned no data for the requested range.");
+      }
+
+      sources.codeforces = codeforcesSeries;
+    } else {
+      warnings.push("Codeforces contributions unavailable.");
+    }
+  } else {
+    warnings.push("Codeforces not connected.");
+  }
+
+  const geeksforgeeksConnection = user.connections?.geeksforgeeks;
+
+  if (geeksforgeeksConnection?.username) {
+    const geeksforgeeksSeries = await getGeeksforgeeksContributionSeriesForUser(
+      user._id.toString(),
+      geeksforgeeksConnection.username,
+      targetRange.start,
+      targetRange.end
+    );
+
+    if (geeksforgeeksSeries) {
+      if (geeksforgeeksSeries.samples.length === 0) {
+        warnings.push("GeeksforGeeks contributions returned no data for the requested range.");
+      }
+
+      sources.geeksforgeeks = geeksforgeeksSeries;
+    } else {
+      warnings.push("GeeksforGeeks contributions unavailable.");
+    }
+  } else {
+    warnings.push("GeeksforGeeks not connected.");
   }
 
   const aggregated = mergeContributionSeries(sources, targetRange.start, targetRange.end);
