@@ -32,7 +32,7 @@ export type ContributionSeries = {
 | Platform | Current Capability | Needed Enhancement |
 | --- | --- | --- |
 | GitHub | No per-day data yet. Plan to scrape user contributions graph (`/users/{username}/contributions`) and count contributions per day. | New `fetchGitHubContributionsFromApi` returning `Array<{ date: string; count: number }>`
-| LeetCode | No per-day breakdown. The public profile exposes a heatmap JSON via `https://leetcode-stats-api.herokuapp.com/{username}`? unreliable. Instead scrape GraphQL endpoint used by site to fetch calendar data. | Implement fetcher using `https://leetcode.com/graphql` with `userCalendar`. Needs CSRF token & cookie; fallback to `https://leetcode.com/graphql` with `operationName: langProblemsetQuestionCalendar`. Will require optional env for session token.
+| LeetCode | No per-day breakdown. The public profile exposes a heatmap JSON via `https://leetcode-stats-api.herokuapp.com/{username}`? unreliable. Instead scrape GraphQL endpoint used by site to fetch calendar data. | Implement fetcher using `https://leetcode.com/graphql` with `userCalendar`. Needs CSRF token & cookie; fallback to `https://leetcode.com/graphql` with `operationName: langProblemsetQuestionCalendar`. Will require optional env for session token. ✅
 | Codeforces | API `user.status` returns submissions with timestamps. We already hit `https://codeforces.com/api/user.status`. Extend existing fetcher to capture `last 180 days` and bin by date. | Adjust Codeforces fetch to optionally return timeline data.
 | CodeChef | Profile JSON includes contest counts per difficulty, not per day. Need to scrape `https://www.codechef.com/recent/user` or GraphQL? Might be heavy. Plan to limit to `fullySolvedHistory` if available; otherwise provide 0 contributions.
 | GeeksforGeeks | Profile page contains `heatmapData.userData`. We can parse `__NEXT_DATA__` to extract `problemSolvedStats.calendar`. | Investigate `practice-calendar` API: `https://practiceapi.geeksforgeeks.org/api/practice-calendar?user_username=`.
@@ -41,7 +41,7 @@ export type ContributionSeries = {
 1. **GitHub** (HTML contributions graph is accessible unauthenticated). Extend GitHub fetch module. ✅
 2. **Codeforces** (API returns full submission history; just bin). May require pagination but manageable.
 3. **GeeksforGeeks** (practice calendar endpoint). Validate per-day data.
-4. **LeetCode** (GraphQL w/ session). Provide optional support; degrade gracefully when not available.
+4. **LeetCode** (GraphQL w/ session). Provide optional support; degrade gracefully when not available. ✅
 5. **CodeChef** (investigate; if no reliable per-day data, note as future work and return 0).
 
 ## Backend Aggregation API
@@ -87,11 +87,11 @@ export type ContributionSeries = {
   - Add backend aggregation route returning GitHub data only (others stubbed with warnings). ✅
   - Integrate heatmap using GitHub data as proof of concept. ✅
 2. **Phase 2**
-   - Extend fetchers for Codeforces and GeeksforGeeks.
-   - Update API aggregator to include new sources.
+  - Extend fetchers for Codeforces and GeeksforGeeks.
+  - Update API aggregator to include new sources.
 3. **Phase 3**
-   - Investigate LeetCode and CodeChef data retrieval complexities.
-   - Add fallback messaging when data is unavailable.
+  - Investigate CodeChef data retrieval complexities.
+  - Add fallback messaging when data is unavailable.
 
 ## Open Questions / Assumptions
 - GitHub user contributions page accessible without auth? Works for public data; respects private contributions only if user toggled them public (beyond scope).

@@ -7,6 +7,7 @@ import {
   type MergeContributionInput,
 } from "./contributions";
 import { getGitHubContributionSeriesForUser } from "./github/contributions";
+import { getLeetCodeContributionSeriesForUser } from "./leetcode/contributions";
 
 const MS_PER_DAY = 86_400_000;
 const MAX_WINDOW_DAYS = 365;
@@ -77,6 +78,29 @@ export const getContributionSeriesForUser = async (
     }
   } else {
     warnings.push("GitHub not connected.");
+  }
+
+  const leetCodeConnection = user.connections?.leetcode;
+
+  if (leetCodeConnection?.username) {
+    const leetCodeSeries = await getLeetCodeContributionSeriesForUser(
+      user._id.toString(),
+      leetCodeConnection.username,
+      targetRange.start,
+      targetRange.end
+    );
+
+    if (leetCodeSeries) {
+      if (leetCodeSeries.samples.length === 0) {
+        warnings.push("LeetCode contributions returned no data for the requested range.");
+      }
+
+      sources.leetcode = leetCodeSeries;
+    } else {
+      warnings.push("LeetCode contributions unavailable.");
+    }
+  } else {
+    warnings.push("LeetCode not connected.");
   }
 
   const aggregated = mergeContributionSeries(sources, targetRange.start, targetRange.end);

@@ -3,8 +3,13 @@ import { ObjectId } from "mongodb";
 
 import clientPromise from "@/dbConfig/dbConfig";
 
-import { fetchGitHubContributionTimelineFromApi, type GitHubContributionDay } from "./api";
+import {
+  fetchGitHubContributionTimelineFromApi,
+  fetchGitHubContributionTimelineFromGraphql,
+  type GitHubContributionDay,
+} from "./api";
 import { ensureRangeOrder, toISODateString, type ServiceContributionSeries } from "../contributions";
+import { findProviderAccessToken } from "../accounts";
 
 const COLLECTION_NAME = "github_contributions";
 
@@ -124,7 +129,17 @@ export const getGitHubContributionSeriesForUser = async (
     end: targetRange.end > today ? today : targetRange.end,
   };
 
-  const samples = await fetchGitHubContributionTimelineFromApi(username, fetchRange);
+  const accessToken = await findProviderAccessToken({ userId, provider: "github" });
+
+  let samples: GitHubContributionDay[] | null = null;
+
+  if (accessToken) {
+    samples = await fetchGitHubContributionTimelineFromGraphql(username, accessToken, fetchRange);
+  }
+
+  if (!samples || samples.length === 0) {
+    samples = await fetchGitHubContributionTimelineFromApi(username, fetchRange);
+  }
 
   if (!samples || samples.length === 0) {
     if (cached) {

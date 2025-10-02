@@ -55,6 +55,26 @@ export type GitHubContributionDay = {
   count: number;
 };
 
+type ContributionCalendarDay = {
+  date: string;
+  contributionCount: number;
+};
+
+type ContributionCalendarResponse = {
+  data?: {
+    user?: {
+      contributionsCollection?: {
+        contributionCalendar?: {
+          weeks: Array<{
+            contributionDays: ContributionCalendarDay[];
+          }>;
+        };
+      };
+    };
+  };
+  errors?: Array<{ message?: string }>;
+};
+
 const fetchJson = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, {
     headers: createAuthHeaders(),
@@ -248,3 +268,109 @@ export async function fetchGitHubContributionTimelineFromApi(
     return null;
   }
 }
+
+const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql";
+
+const buildDateTime = (date: string, endOfDay = false): string =>
+  `${date}T${endOfDay ? "23:59:59" : "00:00:00"}Z`;
+
+export const fetchGitHubContributionTimelineFromGraphql = async (
+  username: string,
+  accessToken: string,
+  options: ContributionRangeOptions = {}
+): Promise<GitHubContributionDay[] | null> => {
+  const normalizedUsername = username.trim();
+  if (!normalizedUsername || !accessToken) {
+    return null;
+  }
+
+  const today = new Date();
+  const end = options.end ?? toISODate(today);
+  const start = options.start ?? end;
+
+  const query = `
+    query($login: String!, $from: DateTime!, $to: DateTime!) {
+      user(login: $login) {
+        contributionsCollection(from: $from, to: $to) {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const fromDateTime = buildDateTime(start, false);
+  const toDateTime = buildDateTime(end, true);
+
+  try {
+    const response = await fetch(GITHUB_GRAPHQL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)",
+      },
+      body: JSON.stringify({
+        query,
+        variables: {
+          login: normalizedUsername,
+          from: fromDateTime,
+          to: toDateTime,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(
+        `GitHub GraphQL request failed (${response.status}): ${errorBody.slice(0, 200)}`
+      );
+    }
+
+    const payload = (await response.json()) as ContributionCalendarResponse;
+
+    if (payload.errors?.length) {
+      throw new Error(`GitHub GraphQL errors: ${payload.errors.map((e) => e.message).join(", ")}`);
+    }
+
+    const weeks = payload.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
+
+    if (!weeks) {
+      return null;
+    }
+
+    const samples: GitHubContributionDay[] = [];
+
+    weeks.forEach((week) => {
+      week.contributionDays.forEach((day) => {
+        if (!day.date) {
+          return;
+        }
+
+        samples.push({
+          date: day.date,
+          count: day.contributionCount ?? 0,
+        });
+      });
+    });
+
+    return samples;
+  } catch (error) {
+    console.error("[github] Failed to fetch contributions via GraphQL", error);
+    return null;
+  }
+};
+
+const toISODate = (value: Date): string => {
+  const year = value.getUTCFullYear();
+  const month = `${value.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${value.getUTCDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
