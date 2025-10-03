@@ -19,6 +19,9 @@ export type IntegrationPreview = {
   stats: StatItem[];
   note?: string;
   lastSyncedAt?: Date | null;
+  avatarUrl?: string | null;
+  profileUrl?: string | null;
+  insights?: StatItem[];
 };
 
 const formatCount = (value?: number): string => {
@@ -70,6 +73,40 @@ export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPre
   const status: IntegrationStatus = fetchFailed ? "error" : "connected";
   const errorNote = fetchFailed ? "Could not load stats." : undefined;
 
+  const avatarUrl = stats?.avatarUrl ?? connection.avatarUrl ?? null;
+  const profileUrl =
+    stats?.profileUrl ??
+    connection.profileUrl ??
+    (connection.username ? `https://github.com/${connection.username}` : null);
+
+  const insights: StatItem[] = [];
+
+  if (stats?.repoCount !== undefined && stats.repoCount !== null) {
+    insights.push({
+      label: "Repositories analyzed",
+      value: formatCount(stats.repoCount),
+      helper: "Public, non-fork repositories counted in totals.",
+    });
+  }
+
+  if (stats?.topLanguages?.length) {
+    const names = stats.topLanguages.map((language) => language.name).join(" · ");
+    const helper = stats.topLanguages
+      .map((language) => {
+        const repoLabel = `${formatCount(language.count)} repo${language.count === 1 ? "" : "s"}`;
+        const starLabel = language.stars ? `${formatCount(language.stars)} stars` : null;
+        const shareLabel = `${language.percentage}%`;
+        return [repoLabel, starLabel, shareLabel].filter(Boolean).join(" · ");
+      })
+      .join(" | ");
+
+    insights.push({
+      label: "Top languages",
+      value: names || "—",
+      helper: helper || undefined,
+    });
+  }
+
   return {
     status,
     username: connection.username,
@@ -93,6 +130,9 @@ export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPre
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
     note: errorNote,
+    avatarUrl,
+    profileUrl,
+    insights: insights.length ? insights : undefined,
   };
 }
 
@@ -122,6 +162,52 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
   const fetchFailed = Boolean(connection.username && !stats);
   const status: IntegrationStatus = fetchFailed ? "error" : "connected";
   const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
+  const avatarUrl = stats?.avatarUrl ?? null;
+  const profileUrl =
+    stats?.profileUrl ?? (connection.username ? `https://leetcode.com/${connection.username}/` : null);
+
+  const insights: StatItem[] = [];
+
+  if (stats?.displayName) {
+    insights.push({ label: "Display name", value: stats.displayName });
+  }
+
+  if (stats?.country) {
+    insights.push({ label: "Country", value: stats.country });
+  }
+
+  if (stats?.reputation !== undefined && stats.reputation !== null) {
+    insights.push({ label: "Reputation", value: formatCount(stats.reputation) });
+  }
+
+  if (stats) {
+    insights.push(
+      {
+        label: "Easy solved",
+        value: formatCount(stats.easySolved),
+      },
+      {
+        label: "Medium solved",
+        value: formatCount(stats.mediumSolved),
+      },
+      {
+        label: "Hard solved",
+        value: formatCount(stats.hardSolved),
+      }
+    );
+  }
+
+  if (stats?.contestsAttended !== undefined && stats.contestsAttended !== null) {
+    insights.push({
+      label: "Contests attended",
+      value: formatCount(stats.contestsAttended),
+    });
+  }
+
+  if (stats?.githubUrl) {
+    insights.push({ label: "GitHub profile", value: stats.githubUrl });
+  }
 
   return {
     status,
@@ -160,6 +246,9 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
     note: errorNote,
+    avatarUrl,
+    profileUrl,
+    insights: insights.length ? insights : undefined,
   };
 }
 
@@ -189,6 +278,62 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
   const fetchFailed = Boolean(connection.handle && !stats);
   const status: IntegrationStatus = fetchFailed ? "error" : "connected";
   const errorNote = fetchFailed ? "Could not load stats." : undefined;
+
+  const avatarUrl = stats?.avatarUrl ?? null;
+  const profileUrl = connection.handle
+    ? `https://codeforces.com/profile/${connection.handle}`
+    : null;
+
+  const insights: StatItem[] = [];
+
+  if (stats?.contribution !== undefined && stats.contribution !== null) {
+    insights.push({
+      label: "Contribution points",
+      value: formatCount(stats.contribution),
+    });
+  }
+
+  if (stats?.friendOfCount !== undefined && stats.friendOfCount !== null) {
+    insights.push({
+      label: "Friends",
+      value: formatCount(stats.friendOfCount),
+    });
+  }
+
+  if (stats?.country || stats?.city) {
+    const location = [stats?.country, stats?.city].filter(Boolean).join(", ");
+    if (location) {
+      insights.push({ label: "Location", value: location });
+    }
+  }
+
+  if (stats?.organization) {
+    insights.push({ label: "Organization", value: stats.organization });
+  }
+
+  if (stats?.lastContestName) {
+    const contestDate = stats.lastContestDate
+      ? new Intl.DateTimeFormat("en", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }).format(stats.lastContestDate)
+      : null;
+
+    const helperParts = [
+      stats.lastContestRank ? `Rank #${formatCount(stats.lastContestRank)}` : null,
+      stats.lastContestRating !== undefined && stats.lastContestRating !== null &&
+      stats.lastContestNewRating !== undefined && stats.lastContestNewRating !== null
+        ? `Rating ${stats.lastContestRating} → ${stats.lastContestNewRating}`
+        : null,
+    ].filter(Boolean);
+
+    insights.push({
+      label: "Last contest",
+      value: contestDate ? `${stats.lastContestName} · ${contestDate}` : stats.lastContestName,
+      helper: helperParts.length ? helperParts.join(" · ") : undefined,
+    });
+  }
 
   return {
     status,
@@ -233,6 +378,9 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt ?? connection.lastContestAt),
     note: errorNote,
+    avatarUrl,
+    profileUrl,
+    insights: insights.length ? insights : undefined,
   };
 }
 
@@ -272,6 +420,23 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
   const partiallySolved = stats?.partiallySolved ?? connection.partiallySolved;
   const stars = stats?.stars ?? connection.stars;
 
+  const profileUrl =
+    stats?.profileUrl ?? (connection.username ? `https://www.codechef.com/users/${connection.username}` : null);
+
+  const insights: StatItem[] = [];
+
+  if (stats?.country) {
+    insights.push({ label: "Country", value: stats.country });
+  }
+
+  if (stars) {
+    insights.push({
+      label: "Division badge",
+      value: stars,
+      helper: "Reflects your current rating tier.",
+    });
+  }
+
   return {
     status,
     username: connection.username,
@@ -304,6 +469,8 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
     note: errorNote,
+    profileUrl,
+    insights: insights.length ? insights : undefined,
   };
 }
 
@@ -341,6 +508,24 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
   const schoolRank = stats?.schoolRank ?? connection.schoolRank;
   const streak = stats?.streak ?? connection.streak;
 
+  const avatarUrl = stats?.avatarUrl ?? null;
+  const profileUrl =
+    stats?.profileUrl ?? (connection.username ? `https://www.geeksforgeeks.org/user/${connection.username}/` : null);
+
+  const insights: StatItem[] = [];
+
+  if (stats?.country) {
+    insights.push({ label: "Country", value: stats.country });
+  }
+
+  if (stats?.schoolRank !== undefined && stats.schoolRank !== null) {
+    insights.push({ label: "School rank", value: `#${formatCount(stats.schoolRank)}` });
+  }
+
+  if (stats?.instituteRank !== undefined && stats.instituteRank !== null) {
+    insights.push({ label: "Institute rank", value: `#${formatCount(stats.instituteRank)}` });
+  }
+
   return {
     status,
     username: connection.username,
@@ -368,5 +553,8 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt),
     note: errorNote,
+    avatarUrl,
+    profileUrl,
+    insights: insights.length ? insights : undefined,
   };
 }
