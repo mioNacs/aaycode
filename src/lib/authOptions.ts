@@ -8,12 +8,8 @@ import { compare } from "bcryptjs";
 
 import clientPromise from "@/dbConfig/dbConfig";
 import { env } from "@/config";
-import {
-  ensureUserHasUsername,
-  findUserByEmail,
-  findUserById,
-  updateGitHubConnectionForUser,
-} from "./users";
+import { ensureUserHasUsername, findUserByEmail, findUserById, updateGitHubConnectionForUser } from "./users";
+import { sanitizeProviderAccessToken, upsertProviderAccessToken } from "./accounts";
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -96,6 +92,36 @@ export const authOptions: NextAuthOptions = {
           const username =
             (profileData?.login as string | undefined) ?? account.providerAccountId;
 
+          let encryptedAccessToken: string | undefined;
+
+          const accessToken = account.access_token ?? null;
+
+          if (accessToken) {
+            try {
+              encryptedAccessToken = await upsertProviderAccessToken({
+                userId: user.id,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                accessToken,
+                scope: account.scope ?? null,
+                tokenType: account.token_type ?? null,
+                expiresAt: account.expires_at ?? null,
+              });
+            } catch (tokenError) {
+              console.error("[next-auth] Failed to persist GitHub access token", tokenError);
+            } finally {
+              try {
+                await sanitizeProviderAccessToken({
+                  userId: user.id,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                });
+              } catch (sanitizeError) {
+                console.error("[next-auth] Failed to sanitize stored GitHub tokens", sanitizeError);
+              }
+            }
+          }
+
           await updateGitHubConnectionForUser(user.id, {
             username,
             profileUrl: profileData?.html_url as string | undefined,
@@ -103,6 +129,8 @@ export const authOptions: NextAuthOptions = {
             publicRepos: profileData?.public_repos as number | undefined,
             followers: profileData?.followers as number | undefined,
             lastSyncedAt: new Date(),
+            accessTokenEncrypted: encryptedAccessToken,
+            accessTokenUpdatedAt: encryptedAccessToken ? new Date() : undefined,
           });
         } catch (error) {
           console.error("[next-auth] Failed to update GitHub connection", error);

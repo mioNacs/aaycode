@@ -19,16 +19,18 @@ export function CodechefCard({ data }: CodechefCardProps) {
       stats={data.stats}
       note={data.note}
       lastSyncedAt={data.lastSyncedAt}
+      profileUrl={data.profileUrl}
+      insights={data.insights}
       cta={{
         label:
           data.status === "connected" && data.username
             ? "View profile"
             : "Connect CodeChef",
         href:
-          data.status === "connected" && data.username
-            ? `https://www.codechef.com/users/${data.username}`
+          data.status === "connected"
+            ? data.profileUrl ?? (data.username ? `https://www.codechef.com/users/${data.username}` : "/dashboard")
             : "/dashboard",
-        external: data.status === "connected" && Boolean(data.username),
+        external: data.status === "connected" && Boolean(data.profileUrl ?? data.username),
       }}
     />
   );

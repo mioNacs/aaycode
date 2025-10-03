@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContributionHeatmap } from "@/components/profile/contribution-heatmap";
 import { GitHubCard } from "@/components/profile/github-card";
 import { LeetCodeCard } from "@/components/profile/leetcode-card";
 import { CodeforcesCard } from "@/components/profile/codeforces-card";
@@ -14,35 +15,49 @@ import {
   getGitHubPreview,
   getLeetCodePreview,
 } from "@/lib/integrations";
+import { getContributionSeriesForUser } from "@/lib/contribution-aggregator";
 import { findUserByUsername } from "@/lib/users";
 
+type ProfilePageParams = {
+  username: string;
+};
+
 type ProfilePageProps = {
-  params: {
-    username: string;
-  };
+  params: Promise<ProfilePageParams> | ProfilePageParams;
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const user = await findUserByUsername(params.username);
+  const resolvedParams = await params;
+
+  const user = await findUserByUsername(resolvedParams.username);
 
   if (!user) {
     notFound();
   }
 
-  const displayName = user.name ?? user.username ?? params.username;
+  const displayName = user.name ?? user.username ?? resolvedParams.username;
+  const contributionsPromise = getContributionSeriesForUser(user).catch((error) => {
+    console.error("[profile] Failed to load contributions", error);
+    return null;
+  });
+
   const [
     githubPreview,
     leetCodePreview,
     codeforcesPreview,
     codechefPreview,
     geeksforgeeksPreview,
+    contributionResult,
   ] = await Promise.all([
     getGitHubPreview(user),
     getLeetCodePreview(user),
     getCodeforcesPreview(user),
     getCodechefPreview(user),
     getGeeksforgeeksPreview(user),
+    contributionsPromise,
   ]);
+
+  const contributionWarnings = contributionResult?.warnings ?? [];
 
   const totalIntegrations = 5;
   const connectedIntegrations = [
@@ -66,7 +81,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         year: "numeric",
       }).format(createdAt)
     : "Recently";
-  const profileSlug = `u/${params.username}`;
+  const profileSlug = `u/${resolvedParams.username}`;
 
   return (
     <main className="container flex min-h-[70vh] flex-col gap-12 py-16">
@@ -115,6 +130,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         codechef={codechefPreview}
         geeksforgeeks={geeksforgeeksPreview}
       />
+
+      {contributionResult && (
+        <ContributionHeatmap
+          username={displayName}
+          series={contributionResult.series}
+          warnings={contributionWarnings}
+        />
+      )}
 
       <section className="space-y-6">
         <div className="space-y-2">

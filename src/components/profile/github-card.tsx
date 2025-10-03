@@ -19,16 +19,19 @@ export function GitHubCard({ data }: GitHubCardProps) {
       stats={data.stats}
       note={data.note}
       lastSyncedAt={data.lastSyncedAt}
+      avatarUrl={data.avatarUrl}
+      profileUrl={data.profileUrl}
+      insights={data.insights}
       cta={{
         label:
           data.status === "connected" && data.username
             ? "View profile"
             : "Connect GitHub",
         href:
-          data.status === "connected" && data.username
-            ? `https://github.com/${data.username}`
+          data.status === "connected"
+            ? data.profileUrl ?? (data.username ? `https://github.com/${data.username}` : "/dashboard")
             : "/dashboard",
-        external: data.status === "connected" && Boolean(data.username),
+        external: data.status === "connected" && Boolean(data.profileUrl ?? data.username),
       }}
     />
   );

@@ -12,6 +12,8 @@ export type GitHubConnection = {
   totalStars?: number;
   topLanguage?: string;
   lastSyncedAt?: Date;
+  accessTokenEncrypted?: string | null;
+  accessTokenUpdatedAt?: Date;
 };
 
 export type LeetCodeConnection = {
@@ -239,6 +241,14 @@ export const updateGitHubConnectionForUser = async (
     ...existingConnection,
     ...connection,
     lastSyncedAt: connection.lastSyncedAt ?? existingConnection?.lastSyncedAt ?? new Date(),
+    accessTokenEncrypted:
+      connection.accessTokenEncrypted !== undefined
+        ? connection.accessTokenEncrypted
+        : existingConnection?.accessTokenEncrypted,
+    accessTokenUpdatedAt:
+      connection.accessTokenEncrypted !== undefined
+        ? connection.accessTokenUpdatedAt ?? new Date()
+        : connection.accessTokenUpdatedAt ?? existingConnection?.accessTokenUpdatedAt,
   };
 
   await users.updateOne(

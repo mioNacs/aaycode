@@ -12,6 +12,14 @@ declare module "next-auth" {
     id: string;
     username?: string | null;
   }
+
+  interface Account {
+    access_token?: string | null;
+    token_type?: string | null;
+    scope?: string | null;
+    refresh_token?: string | null;
+    expires_at?: number | null;
+  }
 }
 
 declare module "next-auth/jwt" {

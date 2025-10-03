@@ -1,9 +1,9 @@
 import { load} from "cheerio";
 import type { Element } from "domhandler";
 
-const CODECHEF_PROFILE_BASE_URL = "https://www.codechef.com/users/";
+export const CODECHEF_PROFILE_BASE_URL = "https://www.codechef.com/users/";
 
-const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
+export const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
 
 const cleanText = (value: string | undefined | null): string =>
   value ? value.replace(/\s+/g, " ").trim() : "";
@@ -72,7 +72,7 @@ export type CodechefStats = {
   fetchedAt: Date;
 };
 
-const isProfileMissing = (html: string): boolean => {
+export const isProfileMissing = (html: string): boolean => {
   const normalized = html.toLowerCase();
   return (
     normalized.includes("user does not exist") ||

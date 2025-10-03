@@ -1,6 +1,4 @@
-const LEETCODE_GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
-
-const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
+import { buildLeetCodeHeaders, LEETCODE_GRAPHQL_ENDPOINT } from "./client";
 
 const graphqlQuery = `
   query getUserProfile($username: String!) {
@@ -149,11 +147,7 @@ export async function fetchLeetCodeStatsFromApi(
 
     const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Referer: "https://leetcode.com",
-        "User-Agent": USER_AGENT,
-      },
+      headers: buildLeetCodeHeaders(),
       body: JSON.stringify({
         query: graphqlQuery,
         variables: { username: normalized },
@@ -163,6 +157,11 @@ export async function fetchLeetCodeStatsFromApi(
 
     if (!response.ok) {
       const errorBody = await response.text();
+      if (response.status === 401 || response.status === 403) {
+        console.warn(
+          "[leetcode] Stats request unauthorized. Ensure LEETCODE_SESSION/LEETCODE_CSRF_TOKEN env vars are set."
+        );
+      }
       throw new Error(
         `LeetCode API request failed (${response.status}): ${errorBody}`
       );
