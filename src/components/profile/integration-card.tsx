@@ -14,7 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
-import { FiExternalLink, FiX } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
 
 import type { IntegrationStatus, StatItem } from "@/lib/integrations";
 

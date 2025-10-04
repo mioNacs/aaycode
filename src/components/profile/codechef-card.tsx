@@ -3,12 +3,19 @@ import { SiCodechef } from "react-icons/si";
 import type { IntegrationPreview } from "@/lib/integrations";
 
 import { IntegrationCard } from "./integration-card";
+import { PlatformHeatmap } from "./platform-heatmap";
 
 type CodechefCardProps = {
   data: IntegrationPreview;
 };
 
 export function CodechefCard({ data }: CodechefCardProps) {
+  const contributionSeries = data.contributionSeries;
+
+  const detailContent = contributionSeries ? (
+    <PlatformHeatmap platformName="CodeChef" series={contributionSeries} />
+  ) : undefined;
+
   return (
     <IntegrationCard
       icon={<SiCodechef className="h-5 w-5" />}
@@ -21,6 +28,7 @@ export function CodechefCard({ data }: CodechefCardProps) {
       lastSyncedAt={data.lastSyncedAt}
       profileUrl={data.profileUrl}
       insights={data.insights}
+      detailContent={detailContent}
       cta={{
         label:
           data.status === "connected" && data.username

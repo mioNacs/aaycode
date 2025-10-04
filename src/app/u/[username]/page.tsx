@@ -17,6 +17,11 @@ import {
 } from "@/lib/integrations";
 import { getContributionSeriesForUser } from "@/lib/contribution-aggregator";
 import { findUserByUsername } from "@/lib/users";
+import { getGitHubContributionSeriesForUser } from "@/lib/github/contributions";
+import { getLeetCodeContributionSeriesForUser } from "@/lib/leetcode/contributions";
+import { getCodeforcesContributionSeriesForUser } from "@/lib/codeforces/contributions";
+import { getCodechefContributionSeriesForUser } from "@/lib/codechef/contributions";
+import { getGeeksforgeeksContributionSeriesForUser } from "@/lib/geeksforgeeks/contributions";
 
 type ProfilePageParams = {
   username: string;
@@ -41,20 +46,75 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     return null;
   });
 
+  // Get contribution result first to determine date range
+  const contributionResult = await contributionsPromise;
+  const dateRange = {
+    start: contributionResult?.series.startDate ?? new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0],
+    end: contributionResult?.series.endDate ?? new Date().toISOString().split("T")[0],
+  };
+
+  // Fetch platform-specific contribution series in parallel
+  const [
+    githubSeries,
+    leetcodeSeries,
+    codeforcesSeries,
+    codechefSeries,
+    gfgSeries,
+  ] = await Promise.all([
+    user.connections?.github?.username
+      ? getGitHubContributionSeriesForUser(
+          user._id.toString(),
+          user.connections.github.username,
+          dateRange.start,
+          dateRange.end
+        ).catch(() => null)
+      : null,
+    user.connections?.leetcode?.username
+      ? getLeetCodeContributionSeriesForUser(
+          user._id.toString(),
+          user.connections.leetcode.username,
+          dateRange.start,
+          dateRange.end
+        ).catch(() => null)
+      : null,
+    user.connections?.codeforces?.handle
+      ? getCodeforcesContributionSeriesForUser(
+          user._id.toString(),
+          user.connections.codeforces.handle,
+          dateRange.start,
+          dateRange.end
+        ).catch(() => null)
+      : null,
+    user.connections?.codechef?.username
+      ? getCodechefContributionSeriesForUser(
+          user._id.toString(),
+          user.connections.codechef.username,
+          dateRange.start,
+          dateRange.end
+        ).catch(() => null)
+      : null,
+    user.connections?.geeksforgeeks?.username
+      ? getGeeksforgeeksContributionSeriesForUser(
+          user._id.toString(),
+          user.connections.geeksforgeeks.username,
+          dateRange.start,
+          dateRange.end
+        ).catch(() => null)
+      : null,
+  ]);
+
   const [
     githubPreview,
     leetCodePreview,
     codeforcesPreview,
     codechefPreview,
     geeksforgeeksPreview,
-    contributionResult,
   ] = await Promise.all([
-    getGitHubPreview(user),
-    getLeetCodePreview(user),
-    getCodeforcesPreview(user),
-    getCodechefPreview(user),
-    getGeeksforgeeksPreview(user),
-    contributionsPromise,
+    getGitHubPreview(user, githubSeries),
+    getLeetCodePreview(user, leetcodeSeries),
+    getCodeforcesPreview(user, codeforcesSeries),
+    getCodechefPreview(user, codechefSeries),
+    getGeeksforgeeksPreview(user, gfgSeries),
   ]);
 
   const contributionWarnings = contributionResult?.warnings ?? [];
