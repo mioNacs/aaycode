@@ -1,48 +1,49 @@
 import Link from "next/link";
 import { FiLink, FiTrendingUp, FiUser, FiUserPlus, FiSettings, FiShare2 } from "react-icons/fi";
-import { getCurrentUserSession } from "../lib/auth";
+
+import { getCurrentUserSession } from "@/lib/auth";
 
 export default async function Home() {
-const session = await getCurrentUserSession();
+  const session = await getCurrentUserSession();
 
-const features = [
-  {
-    icon: FiLink,
-    title: "Unify your coding footprint",
-    description: "Pull stats from your favourite platforms and present them in a single shareable home.",
-  },
-  {
-    icon: FiUser,
-    title: "Showcase a custom username",
-    description: "Claim a clean URL that's easy to share with hiring managers, friends, and mentors.",
-  },
-  {
-    icon: FiTrendingUp,
-    title: "Track progress over time",
-    description: "Stay motivated with snapshots of how your problem-solving and projects evolve week to week.",
-  },
-];
+  const features = [
+    {
+      icon: FiLink,
+      title: "Unify your coding footprint",
+      description: "Pull stats from your favourite platforms and present them in a single shareable home.",
+    },
+    {
+      icon: FiUser,
+      title: "Showcase a custom username",
+      description: "Claim a clean URL that's easy to share with hiring managers, friends, and mentors.",
+    },
+    {
+      icon: FiTrendingUp,
+      title: "Track progress over time",
+      description: "Stay motivated with snapshots of how your problem-solving and projects evolve week to week.",
+    },
+  ];
 
-const steps = [
-  {
-    icon: FiUserPlus,
-    number: "1",
-    title: "Create your account",
-    body: "Sign up with Google, GitHub, or email/password. Your username is reserved instantly.",
-  },
-  {
-    icon: FiSettings,
-    number: "2",
-    title: "Connect coding services",
-    body: "Sync GitHub, LeetCode, Codeforces, CodeChef, and GeeksforGeeks to populate your profile automatically.",
-  },
-  {
-    icon: FiShare2,
-    number: "3",
-    title: "Share your profile",
-    body: "Send a single link that captures your progress, projects, and achievements at a glance.",
-  },
-];
+  const steps = [
+    {
+      icon: FiUserPlus,
+      number: "1",
+      title: "Create your account",
+      body: "Sign up with Google, GitHub, or email/password. Your username is reserved instantly.",
+    },
+    {
+      icon: FiSettings,
+      number: "2",
+      title: "Connect coding services",
+      body: "Sync GitHub, LeetCode, Codeforces, CodeChef, and GeeksforGeeks to populate your profile automatically.",
+    },
+    {
+      icon: FiShare2,
+      number: "3",
+      title: "Share your profile",
+      body: "Send a single link that captures your progress, projects, and achievements at a glance.",
+    },
+  ];
 
   return (
     <div className="container flex min-h-[70vh] flex-col justify-center gap-10 py-16">
@@ -57,24 +58,27 @@ const steps = [
               This... is how ‘I Code’.
             </h1>
             <p className="text-lg text-neutral-600">
-              Stop juggling screenshots and spreadsheets. AyyCode pulls your stats together, keeps them
-              fresh, and gives you a polished profile to share with the world.
+              Stop juggling screenshots and spreadsheets. AyyCode pulls your stats together, keeps them fresh, and gives you a polished profile to share with the world.
             </p>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            {!session && <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500"
-            >
-              <span className="text-white">Start for free</span>
-            </Link>}
-            {session && <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold transition hover:border-teal-500"
-            >
-              <span className="text-white">Explore the dashboard</span>
-            </Link>}
+            {!session && (
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-200 transition hover:bg-teal-500"
+              >
+                <span className="text-white">Start for free</span>
+              </Link>
+            )}
+            {session && (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold transition hover:border-teal-500"
+              >
+                <span className="text-white">Explore the dashboard</span>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -95,8 +99,7 @@ const steps = [
         <div className="rounded-[28px] bg-white/90 p-10 shadow-[0_35px_90px_rgba(99,102,241,0.08)] backdrop-blur">
           <h2 className="text-3xl font-semibold text-[#0f172a]">How it works</h2>
           <p className="mt-2 max-w-2xl text-neutral-600">
-            AyyCode streamlines the way you share your progress. In just a few minutes you can stand up a
-            professional-looking profile for recruiters, communities, or personal milestones.
+            AyyCode streamlines the way you share your progress. In just a few minutes you can stand up a professional-looking profile for recruiters, communities, or personal milestones.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">

@@ -46,27 +46,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     return null;
   });
 
-  // Get contribution result first to determine date range
   const contributionResult = await contributionsPromise;
   const dateRange = {
     start: contributionResult?.series.startDate ?? new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0],
     end: contributionResult?.series.endDate ?? new Date().toISOString().split("T")[0],
   };
 
-  // Fetch platform-specific contribution series in parallel
-  const [
-    githubSeries,
-    leetcodeSeries,
-    codeforcesSeries,
-    codechefSeries,
-    gfgSeries,
-  ] = await Promise.all([
+  const [githubSeries, leetcodeSeries, codeforcesSeries, codechefSeries, gfgSeries] = await Promise.all([
     user.connections?.github?.username
       ? getGitHubContributionSeriesForUser(
           user._id.toString(),
           user.connections.github.username,
           dateRange.start,
-          dateRange.end
+          dateRange.end,
         ).catch(() => null)
       : null,
     user.connections?.leetcode?.username
@@ -74,7 +66,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           user._id.toString(),
           user.connections.leetcode.username,
           dateRange.start,
-          dateRange.end
+          dateRange.end,
         ).catch(() => null)
       : null,
     user.connections?.codeforces?.handle
@@ -82,7 +74,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           user._id.toString(),
           user.connections.codeforces.handle,
           dateRange.start,
-          dateRange.end
+          dateRange.end,
         ).catch(() => null)
       : null,
     user.connections?.codechef?.username
@@ -90,7 +82,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           user._id.toString(),
           user.connections.codechef.username,
           dateRange.start,
-          dateRange.end
+          dateRange.end,
         ).catch(() => null)
       : null,
     user.connections?.geeksforgeeks?.username
@@ -98,18 +90,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           user._id.toString(),
           user.connections.geeksforgeeks.username,
           dateRange.start,
-          dateRange.end
+          dateRange.end,
         ).catch(() => null)
       : null,
   ]);
 
-  const [
-    githubPreview,
-    leetCodePreview,
-    codeforcesPreview,
-    codechefPreview,
-    geeksforgeeksPreview,
-  ] = await Promise.all([
+  const [githubPreview, leetCodePreview, codeforcesPreview, codechefPreview, geeksforgeeksPreview] = await Promise.all([
     getGitHubPreview(user, githubSeries),
     getLeetCodePreview(user, leetcodeSeries),
     getCodeforcesPreview(user, codeforcesSeries),
@@ -126,9 +112,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     codeforcesPreview,
     codechefPreview,
     geeksforgeeksPreview,
-  ].filter(
-    (preview) => preview.status === "connected"
-  ).length;
+  ].filter((preview) => preview.status === "connected").length;
   const createdAt = user.createdAt
     ? user.createdAt instanceof Date
       ? user.createdAt
@@ -164,9 +148,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-neutral-500 md:max-w-2xl">
-            AyyCode pulls together contributions across coding platforms. Link services from your
-            dashboard to turn this space into a living portfolio of your progress, contests, and
-            repositories.
+            AyyCode pulls together contributions across coding platforms. Link services from your dashboard to turn this space into a living portfolio of your progress, contests, and repositories.
           </p>
           <Link
             href="/dashboard"
@@ -203,8 +185,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-[#0f172a]">Connected platforms</h2>
           <p className="text-sm text-neutral-500">
-            Stats update automatically once a service is linked. Until then, use the connect prompts
-            to wire everything up.
+            Stats update automatically once a service is linked. Until then, use the connect prompts to wire everything up.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
