@@ -43,13 +43,15 @@ const formatLastSynced = (value?: Date | string | null): string | null => {
 };
 
 const ServiceRow = ({ title, description, action, helper }: ServiceRowProps) => (
-  <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-6 sm:flex-row sm:items-center sm:justify-between">
-    <div className="space-y-1 text-sm text-neutral-600">
-      <p className="text-base font-semibold text-[#0f172a]">{title}</p>
-      <p className="text-neutral-500">{description}</p>
-      {helper ? <div className="text-xs text-neutral-400">{helper}</div> : null}
+  <div className="rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-neutral-300 hover:shadow-sm">
+    <div className="mb-4 flex items-start justify-between gap-4">
+      <div className="flex-1">
+        <h3 className="mb-1 text-lg font-semibold text-[#0f172a]">{title}</h3>
+        <p className="text-sm text-neutral-600">{description}</p>
+        {helper ? <p className="mt-2 text-xs text-neutral-400">{helper}</p> : null}
+      </div>
     </div>
-    {action}
+    <div className="flex flex-wrap items-center gap-2">{action}</div>
   </div>
 );
 
@@ -86,12 +88,11 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
     : null;
 
   return (
-    <section className="card max-w-3xl space-y-6 p-10">
-      <header className="space-y-2">
-        <h2 className="text-2xl font-semibold text-[#0f172a]">Manage connected services</h2>
-        <p className="text-sm text-neutral-500">
-          Link developer platforms to enrich your public profile. Disconnect at any time to revoke
-          access.
+    <section className="card space-y-6 p-8">
+      <header>
+        <h2 className="text-xl font-semibold text-[#0f172a]">Connected Services</h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Link developer platforms to enrich your public profile
         </p>
       </header>
 
@@ -102,7 +103,7 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           helper={githubHelper}
           action={
             githubConnection ? (
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <>
                 <ConnectGitHubButton
                   connected
                   username={githubConnection.username}
@@ -112,7 +113,7 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
                   serviceName="GitHub"
                 />
                 <DisconnectGitHubButton />
-              </div>
+              </>
             ) : (
               <ConnectGitHubButton connected={false} />
             )
@@ -135,14 +136,14 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           }
           action={
             leetCodeConnection ? (
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <>
                 <ConnectLeetCodeButton username={leetCodeConnection.username} />
                 <SyncIntegrationButton
                   endpoint="/api/integrations/leetcode/sync"
                   serviceName="LeetCode"
                 />
                 <DisconnectLeetCodeButton />
-              </div>
+              </>
             ) : (
               <ConnectLeetCodeButton username={null} />
             )
@@ -165,14 +166,14 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           }
           action={
             codeforcesConnection ? (
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <>
                 <ConnectCodeforcesButton handle={codeforcesConnection.handle} />
                 <SyncIntegrationButton
                   endpoint="/api/integrations/codeforces/sync"
                   serviceName="Codeforces"
                 />
                 <DisconnectCodeforcesButton />
-              </div>
+              </>
             ) : (
               <ConnectCodeforcesButton handle={null} />
             )
@@ -195,14 +196,14 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           }
           action={
             codechefConnection ? (
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <>
                 <ConnectCodechefButton username={codechefConnection.username} />
                 <SyncIntegrationButton
                   endpoint="/api/integrations/codechef/sync"
                   serviceName="CodeChef"
                 />
                 <DisconnectCodechefButton />
-              </div>
+              </>
             ) : (
               <ConnectCodechefButton username={null} />
             )
@@ -225,14 +226,14 @@ export function ConnectedServicesSection({ connections }: ConnectedServicesSecti
           }
           action={
             geeksforgeeksConnection ? (
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <>
                 <ConnectGeeksforgeeksButton username={geeksforgeeksConnection.username} />
                 <SyncIntegrationButton
                   endpoint="/api/integrations/geeksforgeeks/sync"
                   serviceName="GeeksforGeeks"
                 />
                 <DisconnectGeeksforgeeksButton />
-              </div>
+              </>
             ) : (
               <ConnectGeeksforgeeksButton username={null} />
             )

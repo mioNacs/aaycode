@@ -30,6 +30,15 @@ const parseStatsDocument = (doc: WithId<GitHubStatsDocument>): GitHubStatsDocume
       doc.data.fetchedAt instanceof Date
         ? doc.data.fetchedAt
         : new Date(doc.data.fetchedAt),
+    topRepositories: doc.data.topRepositories?.map((repo) => ({
+      ...repo,
+      updatedAt:
+        repo.updatedAt instanceof Date
+          ? repo.updatedAt
+          : repo.updatedAt
+          ? new Date(repo.updatedAt)
+          : null,
+    })) ?? [],
   },
   lastUpdatedAt:
     doc.lastUpdatedAt instanceof Date ? doc.lastUpdatedAt : new Date(doc.lastUpdatedAt),

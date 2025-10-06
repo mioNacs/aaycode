@@ -3,12 +3,19 @@ import { SiLeetcode } from "react-icons/si";
 import type { IntegrationPreview } from "@/lib/integrations";
 
 import { IntegrationCard } from "./integration-card";
+import { PlatformHeatmap } from "./platform-heatmap";
 
 type LeetCodeCardProps = {
   data: IntegrationPreview;
 };
 
 export function LeetCodeCard({ data }: LeetCodeCardProps) {
+  const contributionSeries = data.contributionSeries;
+
+  const detailContent = contributionSeries ? (
+    <PlatformHeatmap platformName="LeetCode" series={contributionSeries} />
+  ) : undefined;
+
   return (
     <IntegrationCard
       icon={<SiLeetcode className="h-5 w-5" />}
@@ -22,6 +29,7 @@ export function LeetCodeCard({ data }: LeetCodeCardProps) {
       avatarUrl={data.avatarUrl}
       profileUrl={data.profileUrl}
       insights={data.insights}
+      detailContent={detailContent}
       cta={{
         label:
           data.status === "connected" && data.username

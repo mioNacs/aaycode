@@ -29,6 +29,9 @@ type GitHubRepoResponse = {
   language: string | null;
   fork: boolean;
   private: boolean;
+  html_url: string;
+  description: string | null;
+  updated_at: string | null;
 };
 
 export type GitHubLanguageStat = {
@@ -36,6 +39,15 @@ export type GitHubLanguageStat = {
   count: number;
   stars: number;
   percentage: number;
+};
+
+export type GitHubRepositoryPreview = {
+  name: string;
+  url: string;
+  stars: number;
+  description?: string | null;
+  language?: string | null;
+  updatedAt?: Date | null;
 };
 
 export type GitHubStats = {
@@ -47,6 +59,7 @@ export type GitHubStats = {
   repoCount: number;
   totalStars: number;
   topLanguages: GitHubLanguageStat[];
+  topRepositories: GitHubRepositoryPreview[];
   fetchedAt: Date;
 };
 
@@ -138,6 +151,34 @@ const computeLanguageStats = (repos: GitHubRepoResponse[]): GitHubLanguageStat[]
     }));
 };
 
+const MAX_REPO_PAGES = 10;
+
+const getUpdatedTimestamp = (iso?: string | null): number => {
+  if (!iso) {
+    return 0;
+  }
+
+  const timestamp = new Date(iso).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const fetchAllVisibleRepos = async (userUrl: string): Promise<GitHubRepoResponse[]> => {
+  const repos: GitHubRepoResponse[] = [];
+
+  for (let page = 1; page <= MAX_REPO_PAGES; page += 1) {
+    const url = `${userUrl}/repos?per_page=100&page=${page}&sort=updated`;
+    const pageRepos = await fetchJson<GitHubRepoResponse[]>(url);
+
+    repos.push(...pageRepos);
+
+    if (pageRepos.length < 100) {
+      break;
+    }
+  }
+
+  return repos;
+};
+
 export async function fetchGitHubStatsFromApi(
   username: string
 ): Promise<GitHubStats | null> {
@@ -146,11 +187,10 @@ export async function fetchGitHubStatsFromApi(
     const userUrl = `${GITHUB_API_ROOT}/users/${encodeURIComponent(
       normalizedUsername
     )}`;
-    const reposUrl = `${userUrl}/repos?per_page=100&sort=updated`;
 
     const [user, repos] = await Promise.all([
       fetchJson<GitHubUserResponse>(userUrl),
-      fetchJson<GitHubRepoResponse[]>(reposUrl),
+      fetchAllVisibleRepos(userUrl),
     ]);
 
     const visibleRepos = repos.filter((repo) => !repo.fork && !repo.private);
@@ -160,6 +200,26 @@ export async function fetchGitHubStatsFromApi(
     );
 
     const topLanguages = computeLanguageStats(visibleRepos);
+    const topRepositories = visibleRepos
+      .slice()
+      .sort((a, b) => {
+        const starDelta = (b.stargazers_count ?? 0) - (a.stargazers_count ?? 0);
+
+        if (starDelta !== 0) {
+          return starDelta;
+        }
+
+        return getUpdatedTimestamp(b.updated_at) - getUpdatedTimestamp(a.updated_at);
+      })
+      .slice(0, 3)
+      .map<GitHubRepositoryPreview>((repo) => ({
+        name: repo.name,
+        url: repo.html_url,
+        stars: repo.stargazers_count ?? 0,
+        description: repo.description,
+        language: repo.language,
+        updatedAt: repo.updated_at ? new Date(repo.updated_at) : null,
+      }));
 
     return {
       username: user.login,
@@ -170,6 +230,7 @@ export async function fetchGitHubStatsFromApi(
       repoCount: visibleRepos.length,
       totalStars,
       topLanguages,
+      topRepositories,
       fetchedAt: new Date(),
     };
   } catch (error) {

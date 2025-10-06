@@ -3,12 +3,19 @@ import { SiCodeforces } from "react-icons/si";
 import type { IntegrationPreview } from "@/lib/integrations";
 
 import { IntegrationCard } from "./integration-card";
+import { PlatformHeatmap } from "./platform-heatmap";
 
 type CodeforcesCardProps = {
   data: IntegrationPreview;
 };
 
 export function CodeforcesCard({ data }: CodeforcesCardProps) {
+  const contributionSeries = data.contributionSeries;
+
+  const detailContent = contributionSeries ? (
+    <PlatformHeatmap platformName="Codeforces" series={contributionSeries} />
+  ) : undefined;
+
   return (
     <IntegrationCard
       icon={<SiCodeforces className="h-5 w-5" />}
@@ -22,6 +29,7 @@ export function CodeforcesCard({ data }: CodeforcesCardProps) {
       avatarUrl={data.avatarUrl}
       profileUrl={data.profileUrl}
       insights={data.insights}
+      detailContent={detailContent}
       cta={{
         label:
           data.status === "connected" && data.username

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import CalendarHeatmap, { type Value } from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 
@@ -14,7 +14,13 @@ const SOURCE_LABELS: Record<ContributionSource, string> = {
   geeksforgeeks: "GeeksforGeeks",
 };
 
-const palette = ["#e2e8f0", "#bae6fd", "#7dd3fc", "#38bdf8", "#0ea5e9"];
+const SOURCE_COLORS: Record<ContributionSource, string[]> = {
+  github: ["#e2e8f0", "#c3dafe", "#a3bffa", "#7f9cf5", "#5a67d8"],
+  leetcode: ["#e2e8f0", "#fed7aa", "#fdba74", "#fb923c", "#f97316"],
+  codeforces: ["#e2e8f0", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6"],
+  codechef: ["#e2e8f0", "#fcd34d", "#fbbf24", "#f59e0b", "#d97706"],
+  geeksforgeeks: ["#e2e8f0", "#86efac", "#4ade80", "#22c55e", "#16a34a"],
+};
 
 type HeatmapValue = {
   date: string;
@@ -29,35 +35,49 @@ type ContributionHeatmapProps = {
 };
 
 export function ContributionHeatmap({ username, series, warnings = [] }: ContributionHeatmapProps) {
+  const [selectedPlatform, setSelectedPlatform] = useState<ContributionSource | "all">("all");
+  
   const samples = series.samples;
   const trimmedUsername = username.trim();
   const possessiveLabel = trimmedUsername.endsWith("s")
     ? `${trimmedUsername}'`
     : `${trimmedUsername}'s`;
 
+  const filteredSamples = useMemo(() => {
+    if (selectedPlatform === "all") {
+      return samples;
+    }
+    
+    return samples.map((sample) => ({
+      ...sample,
+      total: sample.sources[selectedPlatform] ?? 0,
+      sources: { [selectedPlatform]: sample.sources[selectedPlatform] ?? 0 },
+    }));
+  }, [samples, selectedPlatform]);
+
   const totalContributions = useMemo(
-    () => samples.reduce((total, sample) => total + (sample.total ?? 0), 0),
-    [samples]
+    () => filteredSamples.reduce((total, sample) => total + (sample.total ?? 0), 0),
+    [filteredSamples]
   );
 
   const activeDays = useMemo(
-    () => samples.filter((sample) => (sample.total ?? 0) > 0).length,
-    [samples]
+    () => filteredSamples.filter((sample) => (sample.total ?? 0) > 0).length,
+    [filteredSamples]
   );
 
   const maxCount = useMemo(
-    () => samples.reduce((max, sample) => Math.max(max, sample.total ?? 0), 0),
-    [samples]
+    () => filteredSamples.reduce((max, sample) => Math.max(max, sample.total ?? 0), 0),
+    [filteredSamples]
   );
 
   const heatmapValues = useMemo<Value[]>(
     () =>
-      samples.map((sample) => ({
+      filteredSamples.map((sample) => ({
         date: sample.date,
         count: sample.total ?? 0,
         sources: sample.sources,
       })),
-    [samples]
+    [filteredSamples]
   );
 
   const startDate = series.startDate;
@@ -118,6 +138,22 @@ export function ContributionHeatmap({ username, series, warnings = [] }: Contrib
     return `${start} → ${end}`;
   }, [startDate, endDate]);
 
+  const palette = selectedPlatform === "all" 
+    ? ["#e2e8f0", "#bae6fd", "#7dd3fc", "#38bdf8", "#0ea5e9"]
+    : SOURCE_COLORS[selectedPlatform];
+
+  const availablePlatforms = useMemo(() => {
+    const platforms = new Set<ContributionSource>();
+    samples.forEach((sample) => {
+      Object.keys(sample.sources).forEach((source) => {
+        if (sample.sources[source as ContributionSource]) {
+          platforms.add(source as ContributionSource);
+        }
+      });
+    });
+    return Array.from(platforms);
+  }, [samples]);
+
   return (
     <section className="card space-y-6 p-8">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -139,6 +175,35 @@ export function ContributionHeatmap({ username, series, warnings = [] }: Contrib
           </div>
         </div>
       </header>
+
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">Filter by platform:</span>
+          <button
+            onClick={() => setSelectedPlatform("all")}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              selectedPlatform === "all"
+                ? "bg-teal-100 text-teal-700 ring-2 ring-teal-300"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            }`}
+          >
+            All Platforms
+          </button>
+          {availablePlatforms.map((platform) => (
+            <button
+              key={platform}
+              onClick={() => setSelectedPlatform(platform)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                selectedPlatform === platform
+                  ? "bg-teal-100 text-teal-700 ring-2 ring-teal-300"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              {SOURCE_LABELS[platform]}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="overflow-x-auto">
         <CalendarHeatmap

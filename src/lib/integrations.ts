@@ -1,3 +1,5 @@
+import type { GitHubRepositoryPreview } from "./github/api";
+import type { ServiceContributionSeries } from "./contributions";
 import type { UserWithId } from "./users";
 import { getGitHubStatsForUser } from "./github/cache";
 import { getLeetCodeStatsForUser } from "./leetcode/cache";
@@ -22,6 +24,8 @@ export type IntegrationPreview = {
   avatarUrl?: string | null;
   profileUrl?: string | null;
   insights?: StatItem[];
+  topRepositories?: GitHubRepositoryPreview[];
+  contributionSeries?: ServiceContributionSeries | null;
 };
 
 const formatCount = (value?: number): string => {
@@ -46,7 +50,10 @@ const normalizeDate = (value?: Date | null): Date | null => {
   return value instanceof Date ? value : new Date(value);
 };
 
-export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPreview> {
+export async function getGitHubPreview(
+  user: UserWithId,
+  contributionSeries?: ServiceContributionSeries | null
+): Promise<IntegrationPreview> {
   const connection = user.connections?.github;
 
   if (!connection) {
@@ -133,10 +140,15 @@ export async function getGitHubPreview(user: UserWithId): Promise<IntegrationPre
     avatarUrl,
     profileUrl,
     insights: insights.length ? insights : undefined,
+    topRepositories: stats?.topRepositories?.length ? stats.topRepositories : undefined,
+    contributionSeries,
   };
 }
 
-export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationPreview> {
+export async function getLeetCodePreview(
+  user: UserWithId,
+  contributionSeries?: ServiceContributionSeries | null
+): Promise<IntegrationPreview> {
   const connection = user.connections?.leetcode;
 
   if (!connection) {
@@ -249,10 +261,14 @@ export async function getLeetCodePreview(user: UserWithId): Promise<IntegrationP
     avatarUrl,
     profileUrl,
     insights: insights.length ? insights : undefined,
+    contributionSeries,
   };
 }
 
-export async function getCodeforcesPreview(user: UserWithId): Promise<IntegrationPreview> {
+export async function getCodeforcesPreview(
+  user: UserWithId,
+  contributionSeries?: ServiceContributionSeries | null
+): Promise<IntegrationPreview> {
   const connection = user.connections?.codeforces;
 
   if (!connection) {
@@ -381,10 +397,14 @@ export async function getCodeforcesPreview(user: UserWithId): Promise<Integratio
     avatarUrl,
     profileUrl,
     insights: insights.length ? insights : undefined,
+    contributionSeries,
   };
 }
 
-export async function getCodechefPreview(user: UserWithId): Promise<IntegrationPreview> {
+export async function getCodechefPreview(
+  user: UserWithId,
+  contributionSeries?: ServiceContributionSeries | null
+): Promise<IntegrationPreview> {
   const connection = user.connections?.codechef;
 
   if (!connection) {
@@ -471,10 +491,14 @@ export async function getCodechefPreview(user: UserWithId): Promise<IntegrationP
     note: errorNote,
     profileUrl,
     insights: insights.length ? insights : undefined,
+    contributionSeries,
   };
 }
 
-export async function getGeeksforgeeksPreview(user: UserWithId): Promise<IntegrationPreview> {
+export async function getGeeksforgeeksPreview(
+  user: UserWithId,
+  contributionSeries?: ServiceContributionSeries | null
+): Promise<IntegrationPreview> {
   const connection = user.connections?.geeksforgeeks;
 
   if (!connection) {
@@ -556,5 +580,6 @@ export async function getGeeksforgeeksPreview(user: UserWithId): Promise<Integra
     avatarUrl,
     profileUrl,
     insights: insights.length ? insights : undefined,
+    contributionSeries,
   };
 }
