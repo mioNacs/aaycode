@@ -95,7 +95,7 @@ const collectAcceptedSubmissionsForYear = async (
       for (const submission of submissions) {
         const timestamp = submission?.creationTimeSeconds;
 
-        if (!Number.isFinite(timestamp)) {
+        if (!Number.isFinite(timestamp) || timestamp === undefined) {
           continue;
         }
 
