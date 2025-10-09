@@ -60,6 +60,26 @@ type RatingResponse = {
   result: RatingChange[];
 };
 
+type Problem = {
+  contestId?: number;
+  problemsetName?: string;
+  index?: string;
+  name: string;
+};
+
+type Submission = {
+  id: number;
+  contestId?: number;
+  creationTimeSeconds: number;
+  relativeTimeSeconds: number;
+  problem: Problem;
+  verdict?: string;
+};
+
+type StatusResponse = {
+  result: Submission[];
+};
+
 export type CodeforcesStats = {
   handle: string;
   rating?: number | null;
@@ -68,6 +88,7 @@ export type CodeforcesStats = {
   maxRank?: string | null;
   contribution?: number | null;
   friendOfCount?: number | null;
+  solvedProblemCount?: number | null;
   avatarUrl?: string | null;
   country?: string | null;
   city?: string | null;
@@ -90,10 +111,12 @@ export async function fetchCodeforcesStatsFromApi(handle: string): Promise<Codef
 
     const userInfoUrl = `${CODEFORCES_API_ROOT}/user.info?handles=${encodeURIComponent(normalized)}`;
     const ratingUrl = `${CODEFORCES_API_ROOT}/user.rating?handle=${encodeURIComponent(normalized)}`;
+    const statusUrl = `${CODEFORCES_API_ROOT}/user.status?handle=${encodeURIComponent(normalized)}&from=1&count=100000`;
 
-    const [userInfoBody, ratingBody] = await Promise.allSettled([
+    const [userInfoBody, ratingBody, statusBody] = await Promise.allSettled([
       fetchJson<UserInfoResponse>(userInfoUrl),
       fetchJson<RatingResponse>(ratingUrl),
+      fetchJson<StatusResponse>(statusUrl),
     ]);
 
     if (userInfoBody.status === "rejected") {
@@ -107,12 +130,46 @@ export async function fetchCodeforcesStatsFromApi(handle: string): Promise<Codef
     }
 
     let lastContest: RatingChange | undefined;
+    let solvedProblemCount: number | null = null;
 
     if (ratingBody.status === "fulfilled") {
       const history = ratingBody.value.result;
       if (history.length > 0) {
         lastContest = history[history.length - 1];
       }
+    }
+
+    if (statusBody.status === "fulfilled") {
+      const submissions = statusBody.value.result ?? [];
+      const solvedProblems = new Set<string>();
+
+      submissions.forEach((submission) => {
+        if (submission.verdict !== "OK") {
+          return;
+        }
+
+        const problem = submission.problem;
+        if (!problem) {
+          return;
+        }
+
+        const identifierParts = [
+          problem.contestId !== undefined && problem.contestId !== null
+            ? problem.contestId.toString()
+            : null,
+          problem.problemsetName ?? null,
+          problem.index ?? null,
+          problem.name ?? null,
+        ].filter(Boolean);
+
+        if (identifierParts.length === 0) {
+          return;
+        }
+
+        solvedProblems.add(identifierParts.join("::"));
+      });
+
+      solvedProblemCount = solvedProblems.size;
     }
 
     return {
@@ -123,6 +180,7 @@ export async function fetchCodeforcesStatsFromApi(handle: string): Promise<Codef
       maxRank: user.maxRank ?? null,
       contribution: user.contribution ?? null,
       friendOfCount: user.friendOfCount ?? null,
+      solvedProblemCount,
       avatarUrl: user.avatar ?? user.titlePhoto ?? null,
       country: user.country ?? null,
       city: user.city ?? null,

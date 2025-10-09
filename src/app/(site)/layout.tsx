@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FaRegHeart } from "react-icons/fa6";
 
 import { SiteHeader } from "@/components/site-header";
 
@@ -16,12 +17,7 @@ export default function SiteLayout({
       <footer className="border-t border-[rgba(15,23,42,0.07)] bg-[rgba(255,255,255,0.75)] py-10">
         <div className="container flex flex-col gap-6 text-sm text-neutral-500 md:flex-row md:items-center md:justify-between">
           <p>&copy; {new Date().getFullYear()} AyyCode. All rights reserved.</p>
-          <nav className="flex flex-wrap gap-4">
-            <Link href="/">Home</Link>
-            <Link href="/login">Login</Link>
-            <Link href="/signup">Sign up</Link>
-            <Link href="/dashboard">Dashboard</Link>
-          </nav>
+          <p>Made with <FaRegHeart className="inline text-red-600 font-bold"/> by mioNacs</p>
         </div>
       </footer>
     </>

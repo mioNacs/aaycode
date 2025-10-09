@@ -126,6 +126,7 @@ export const getCodeforcesStatsForUser = async (
     rating: fresh.rating ?? undefined,
     maxRating: fresh.maxRating ?? undefined,
     rank: fresh.rank ?? undefined,
+    problemsSolved: fresh.solvedProblemCount ?? undefined,
     lastContestAt: fresh.lastContestDate ?? undefined,
     lastSyncedAt: fresh.fetchedAt,
   });
@@ -154,6 +155,7 @@ export const refreshCodeforcesStatsForUser = async (
     rating: fresh.rating ?? undefined,
     maxRating: fresh.maxRating ?? undefined,
     rank: fresh.rank ?? undefined,
+    problemsSolved: fresh.solvedProblemCount ?? undefined,
     lastContestAt: fresh.lastContestDate ?? undefined,
     lastSyncedAt: fresh.fetchedAt,
   });
