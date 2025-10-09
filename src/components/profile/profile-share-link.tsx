@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FiCheck, FiCopy } from "react-icons/fi";
 
 type ProfileShareLinkProps = {
@@ -10,17 +10,13 @@ type ProfileShareLinkProps = {
 export function ProfileShareLink({ username }: ProfileShareLinkProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [profileUrl, setProfileUrl] = useState(`/u/${username}`);
 
-  const profileUrl = useMemo(() => {
-    if (!username) {
-      return "";
+  // Update the URL with full origin after mounting to avoid hydration mismatch
+  useEffect(() => {
+    if (typeof window !== "undefined" && username) {
+      setProfileUrl(`${window.location.origin}/u/${username}`);
     }
-
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}/u/${username}`;
-    }
-
-    return `/u/${username}`;
   }, [username]);
 
   useEffect(() => {
