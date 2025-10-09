@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { findUserByUsername } from "@/lib/users";
 
@@ -8,7 +8,7 @@ type RouteParams = {
   };
 };
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   const user = await findUserByUsername(params.username);
 
   if (!user) {
