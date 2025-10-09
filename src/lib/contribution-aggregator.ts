@@ -43,9 +43,87 @@ export type ContributionAggregationOptions = {
   end?: string;
 };
 
+export type ContributionAggregationStats = {
+  longestStreak: number;
+  consistencyScore: number;
+  activeDaysInWindow: number;
+  windowDays: number;
+};
+
 export type ContributionAggregationResult = {
   series: ContributionSeries;
   warnings: string[];
+  stats: ContributionAggregationStats;
+};
+
+const ACTIVITY_WINDOW_DAYS = 100;
+
+const computeActivityStats = (series: ContributionSeries): ContributionAggregationStats => {
+  const samples = series.samples;
+
+  if (!samples.length) {
+    return {
+      longestStreak: 0,
+      consistencyScore: 0,
+      activeDaysInWindow: 0,
+      windowDays: 0,
+    };
+  }
+
+  const todayIso = toISODateString(new Date());
+  const pastSamples = samples.filter((sample) => sample.date <= todayIso);
+
+  if (!pastSamples.length) {
+    return {
+      longestStreak: 0,
+      consistencyScore: 0,
+      activeDaysInWindow: 0,
+      windowDays: 0,
+    };
+  }
+
+  let currentStreak = 0;
+  let longestStreak = 0;
+
+  pastSamples.forEach((sample) => {
+    if (sample.total > 0) {
+      currentStreak += 1;
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+    } else {
+      currentStreak = 0;
+    }
+  });
+
+  const windowDays = Math.min(pastSamples.length, ACTIVITY_WINDOW_DAYS);
+
+  if (windowDays === 0) {
+    return {
+      longestStreak,
+      consistencyScore: 0,
+      activeDaysInWindow: 0,
+      windowDays: 0,
+    };
+  }
+
+  const startIndex = pastSamples.length - windowDays;
+  let activeDaysInWindow = 0;
+
+  for (let index = startIndex; index < pastSamples.length; index += 1) {
+    if (pastSamples[index]?.total > 0) {
+      activeDaysInWindow += 1;
+    }
+  }
+
+  const consistencyScore = Math.round((activeDaysInWindow / windowDays) * 100);
+
+  return {
+    longestStreak,
+    consistencyScore,
+    activeDaysInWindow,
+    windowDays,
+  };
 };
 
 export const getContributionSeriesForUser = async (
@@ -177,8 +255,11 @@ export const getContributionSeriesForUser = async (
 
   const aggregated = mergeContributionSeries(sources, targetRange.start, targetRange.end);
 
+  const stats = computeActivityStats(aggregated);
+
   return {
     series: aggregated,
     warnings,
+    stats,
   };
 };

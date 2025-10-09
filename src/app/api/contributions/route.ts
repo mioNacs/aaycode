@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Invalid date format" }, { status: 400 });
     }
 
-    const { series, warnings } = await getContributionSeriesForUser(user, {
+    const { series, warnings, stats } = await getContributionSeriesForUser(user, {
       start,
       end,
     });
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
         success: true,
         series,
         warnings,
+        stats,
       },
       { status: 200 }
     );

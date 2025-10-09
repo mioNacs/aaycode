@@ -309,6 +309,14 @@ export async function getCodeforcesPreview(
     });
   }
 
+  if (stats?.solvedProblemCount !== undefined && stats.solvedProblemCount !== null) {
+    insights.push({
+      label: "Problems solved",
+      value: formatCount(stats.solvedProblemCount),
+      helper: "Unique problems with accepted submissions",
+    });
+  }
+
   if (stats?.friendOfCount !== undefined && stats.friendOfCount !== null) {
     insights.push({
       label: "Friends",
@@ -356,6 +364,16 @@ export async function getCodeforcesPreview(
     username: connection.handle,
     stats: [
       {
+        label: "Problems solved",
+        value:
+          stats?.solvedProblemCount !== undefined && stats?.solvedProblemCount !== null
+            ? formatCount(stats.solvedProblemCount)
+            : connection.problemsSolved !== undefined
+            ? formatCount(connection.problemsSolved)
+            : "—",
+        helper: stats?.solvedProblemCount ? "Unique problems with accepted submissions" : undefined,
+      },
+      {
         label: "Current rating",
         value:
           stats?.rating !== undefined && stats?.rating !== null
@@ -383,13 +401,6 @@ export async function getCodeforcesPreview(
                 day: "numeric",
               }).format(stats.lastContestDate)}`
             : undefined,
-      },
-      {
-        label: "Friends",
-        value:
-          stats?.friendOfCount !== undefined && stats?.friendOfCount !== null
-            ? formatCount(stats.friendOfCount)
-            : "—",
       },
     ],
     lastSyncedAt: normalizeDate(stats?.fetchedAt ?? connection.lastSyncedAt ?? connection.lastContestAt),

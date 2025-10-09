@@ -45,6 +45,12 @@ type ProfileSummaryCardProps = {
   codeforces: IntegrationPreview;
   codechef: IntegrationPreview;
   geeksforgeeks: IntegrationPreview;
+  activity?: {
+    longestStreak: number;
+    consistencyScore: number;
+    activeDaysInWindow: number;
+    windowDays: number;
+  };
 };
 
 const formatValue = (value: number | null): string => {
@@ -103,7 +109,8 @@ const buildHighestContestRating = (
 const buildTotalProblemsSolved = (
   leetcode: IntegrationPreview,
   geeksforgeeks: IntegrationPreview,
-  codechef: IntegrationPreview
+  codechef: IntegrationPreview,
+  codeforces: IntegrationPreview
 ): MetricResult => {
   const contributions: Array<{ platform: string; value: number }> = [];
 
@@ -120,6 +127,11 @@ const buildTotalProblemsSolved = (
   const codechefValue = parseMetric(findStat(codechef, "Fully solved")?.value);
   if (codechefValue !== null) {
     contributions.push({ platform: "CodeChef", value: codechefValue });
+  }
+
+  const codeforcesValue = parseMetric(findStat(codeforces, "Problems solved")?.value);
+  if (codeforcesValue !== null) {
+    contributions.push({ platform: "Codeforces", value: codeforcesValue });
   }
 
   if (!contributions.length) {
@@ -151,6 +163,34 @@ const buildGitHubMetric = (
   };
 };
 
+const buildLongestStreakMetric = (activity?: ProfileSummaryCardProps["activity"]): MetricResult => {
+  if (!activity || activity.longestStreak <= 0) {
+    return { valueLabel: "—" };
+  }
+
+  const days = activity.longestStreak;
+  const helper = "Consecutive active days";
+
+  return {
+    valueLabel: `${days} ${days === 1 ? "day" : "days"}`,
+    helper,
+  };
+};
+
+const buildConsistencyMetric = (activity?: ProfileSummaryCardProps["activity"]): MetricResult => {
+  if (!activity || activity.windowDays === 0) {
+    return { valueLabel: "—" };
+  }
+
+  const { consistencyScore, activeDaysInWindow, windowDays } = activity;
+  const helper = `${activeDaysInWindow}/${windowDays} active days (last ${windowDays} days)`;
+
+  return {
+    valueLabel: `${consistencyScore}%`,
+    helper,
+  };
+};
+
 const SummaryMetric = ({ label, value, helper }: { label: string; value: string; helper?: string }) => {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -167,11 +207,14 @@ export function ProfileSummaryCard({
   codeforces,
   codechef,
   geeksforgeeks,
+  activity,
 }: ProfileSummaryCardProps) {
   const highestContestRating = buildHighestContestRating(leetcode, codeforces, codechef);
-  const totalProblemsSolved = buildTotalProblemsSolved(leetcode, geeksforgeeks, codechef);
+  const totalProblemsSolved = buildTotalProblemsSolved(leetcode, geeksforgeeks, codechef, codeforces);
   const githubFollowers = buildGitHubMetric(github, "Followers", "Followers on GitHub");
   const githubStars = buildGitHubMetric(github, "Total stars", "Across public repositories");
+  const longestStreakMetric = buildLongestStreakMetric(activity);
+  const consistencyMetric = buildConsistencyMetric(activity);
 
   return (
     <section className="card space-y-6 p-10">
@@ -181,7 +224,7 @@ export function ProfileSummaryCard({
           A quick snapshot of standout milestones across your connected platforms.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <SummaryMetric
           label="Highest contest rating"
           value={highestContestRating.valueLabel}
@@ -191,6 +234,16 @@ export function ProfileSummaryCard({
           label="Total problems solved"
           value={totalProblemsSolved.valueLabel}
           helper={totalProblemsSolved.helper}
+        />
+        <SummaryMetric
+          label="Longest streak"
+          value={longestStreakMetric.valueLabel}
+          helper={longestStreakMetric.helper}
+        />
+        <SummaryMetric
+          label="Consistency score"
+          value={consistencyMetric.valueLabel}
+          helper={consistencyMetric.helper}
         />
         <SummaryMetric
           label="GitHub followers"

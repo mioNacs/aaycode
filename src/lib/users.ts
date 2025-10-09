@@ -30,6 +30,7 @@ export type CodeforcesConnection = {
   rating?: number;
   maxRating?: number;
   rank?: string;
+  problemsSolved?: number;
   lastContestAt?: Date;
   lastSyncedAt?: Date;
 };
