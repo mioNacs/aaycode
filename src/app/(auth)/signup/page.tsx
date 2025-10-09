@@ -265,7 +265,7 @@ export default function SignUpPage() {
         )}
 
         <p className="text-center text-sm text-neutral-500">
-          Already have an account?{" "}
+          Already have an account/ Google/ Github?{" "}
           <Link className="font-medium text-teal-600 underline" href="/login">
             Sign in instead
           </Link>
