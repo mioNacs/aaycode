@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { FaRegHeart } from "react-icons/fa6";
 
 import { SiteHeader } from "@/components/site-header";

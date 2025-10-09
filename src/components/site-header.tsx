@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SignOutButton } from "@/components/sign-out-button";
 import { getCurrentUserSession } from "@/lib/auth";
+import { AyyCodeLogo } from "@/components/ayycode-logo";
 
 export async function SiteHeader() {
   const session = await getCurrentUserSession();
@@ -17,11 +18,9 @@ export async function SiteHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[rgba(15,23,42,0.07)] bg-[rgba(255,255,255,0.85)] backdrop-blur-lg">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-neutral-700">
-          <span className="inline-flex p-1 items-center justify-center rounded-md bg-teal-100 font-mono text-sm text-teal-600">
-            &lt;I/&gt;
-          </span>
-          AyyCode
+        <Link href="/" className="flex items-center gap-3 text-sm font-semibold uppercase tracking-widest text-neutral-700 transition hover:opacity-80">
+          <AyyCodeLogo className="h-10 w-10" />
+          <span>AyyCode</span>
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-neutral-600 md:flex">
@@ -29,9 +28,8 @@ export async function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="transition hover:text-teal-600"
             >
-              {link.label}
+              <span className="transition hover:text-teal-600">{link.label}</span>
             </Link>
           ))}
         </nav>
