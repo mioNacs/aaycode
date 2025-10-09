@@ -3,9 +3,10 @@ import { findUserByUsername } from "@/lib/users";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
-  const user = await findUserByUsername(params.username);
+  const { username } = await params;
+  const user = await findUserByUsername(username);
 
   if (!user) {
     return NextResponse.json(
