@@ -66,8 +66,8 @@ export default async function DashboardPage() {
 
         <div className="card p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-              <FiLink2 className="h-6 w-6 text-blue-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50">
+              <FiLink2 className="h-6 w-6 text-teal-600" />
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Connected Services</p>
