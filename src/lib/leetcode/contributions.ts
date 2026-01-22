@@ -11,6 +11,8 @@ import {
 } from "../contributions";
 import { buildLeetCodeHeaders, LEETCODE_GRAPHQL_ENDPOINT } from "./client";
 
+const EXTERNAL_LEETCODE_API = "https://alfa-leetcode-api.onrender.com";
+
 const progressCalendarQuery = `
   query userProgressCalendarV2($year: Int!, $month: Int!, $queryType: ProgressCalendarQueryTypeEnum!) {
     userProgressCalendarV2(year: $year, month: $month, queryType: $queryType) {
@@ -29,9 +31,11 @@ const progressCalendarQuery = `
 `;
 
 const calendarQueryLegacy = `
-  query userProfileCalendar($username: String!, $year: Int) {
-    userProfileCalendar(username: $username, year: $year) {
-      submissionCalendar
+  query getUserProfile($username: String!) {
+    matchedUser(username: $username) {
+      userCalendar {
+        submissionCalendar
+      }
     }
   }
 `;
@@ -64,8 +68,10 @@ type ProgressCalendarData = {
 
 
 type LegacyCalendarData = {
-  userProfileCalendar?: {
-    submissionCalendar?: string | null;
+  matchedUser?: {
+    userCalendar?: {
+      submissionCalendar?: string | null;
+    } | null;
   } | null;
 };
 
@@ -102,7 +108,7 @@ const normalizeDocument = (
   })),
 });
 
-const parseSubmissionCalendar = (submissionCalendar?: string | null): Map<string, number> => {
+const parseSubmissionCalendar = (submissionCalendar?: string | object | null): Map<string, number> => {
   const map = new Map<string, number>();
 
   if (!submissionCalendar) {
@@ -110,7 +116,10 @@ const parseSubmissionCalendar = (submissionCalendar?: string | null): Map<string
   }
 
   try {
-    const parsed = JSON.parse(submissionCalendar) as Record<string, number>;
+    const parsed =
+      typeof submissionCalendar === "string"
+        ? (JSON.parse(submissionCalendar) as Record<string, number>)
+        : (submissionCalendar as Record<string, number>);
 
     Object.entries(parsed).forEach(([timestamp, value]) => {
       const date = new Date(Number.parseInt(timestamp, 10) * 1000);
@@ -257,22 +266,42 @@ const fetchLegacyCalendarValues = async (
   username: string,
   year: number
 ): Promise<Map<string, number> | null> => {
-  const payload = await executeGraphQL<LegacyCalendarData>(
-    calendarQueryLegacy,
-    {
-      username,
-      year,
-    },
-    "userProfileCalendar"
-  );
+  try {
+    const payload = await executeGraphQL<LegacyCalendarData>(
+      calendarQueryLegacy,
+      {
+        username,
+      },
+      "getUserProfile"
+    );
 
-  if (payload.errors?.length) {
-    const message = payload.errors.map((graphQLError) => graphQLError.message ?? "Unknown error").join(", ");
-    throw new Error(message);
+    if (payload.errors?.length) {
+      throw new Error(
+        payload.errors.map((graphQLError) => graphQLError.message ?? "Unknown error").join(", ")
+      );
+    }
+
+    const submissionCalendar = payload.data?.matchedUser?.userCalendar?.submissionCalendar;
+    return parseSubmissionCalendar(submissionCalendar);
+  } catch (error) {
+    console.warn(`[leetcode] Failed to fetch legacy calendar via GraphQL: ${error}. Attempting fallback...`);
+
+    try {
+      // Fallback to external API
+      const response = await fetch(`${EXTERNAL_LEETCODE_API}/${username}`);
+      if (!response.ok) {
+        console.warn(`[leetcode] External API failed (${response.status})`);
+        return null;
+      }
+      const data = await response.json();
+      // External API returns submissionCalendar possibly as object or string
+      // parseSubmissionCalendar handles both
+      return parseSubmissionCalendar(data.submissionCalendar);
+    } catch (fallbackError) {
+      console.error("[leetcode] External API fallback error", fallbackError);
+      return null;
+    }
   }
-
-  const submissionCalendar = payload.data?.userProfileCalendar?.submissionCalendar;
-  return parseSubmissionCalendar(submissionCalendar);
 };
 
 const convertValuesToSamples = (

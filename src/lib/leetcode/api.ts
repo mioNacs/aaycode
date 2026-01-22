@@ -1,5 +1,7 @@
 import { buildLeetCodeHeaders, LEETCODE_GRAPHQL_ENDPOINT } from "./client";
 
+const EXTERNAL_LEETCODE_API = "https://alfa-leetcode-api.onrender.com";
+
 const graphqlQuery = `
   query getUserProfile($username: String!) {
     matchedUser(username: $username) {
@@ -12,6 +14,12 @@ const graphqlQuery = `
         starRating
         reputation
         countryName
+      }
+      userCalendar {
+        activeYears
+        streak
+        totalActiveDays
+        submissionCalendar
       }
       submitStats: submitStatsGlobal {
         acSubmissionNum {
@@ -50,6 +58,12 @@ type MatchedUser = {
     starRating?: number | null;
     reputation?: number | null;
     countryName?: string | null;
+  } | null;
+  userCalendar?: {
+    activeYears?: number[];
+    streak?: number;
+    totalActiveDays?: number;
+    submissionCalendar?: string;
   } | null;
   submitStats?: {
     acSubmissionNum: SubmissionStat[];
@@ -92,6 +106,10 @@ export type LeetCodeStats = {
   badges?: number | null;
   reputation?: number | null;
   githubUrl?: string | null;
+  streak?: number;
+  totalActiveDays?: number;
+  activeYears?: number[];
+  submissionCalendar?: Record<string, number>;
   fetchedAt: Date;
 };
 
@@ -138,13 +156,18 @@ const sumSubmissionStats = (stats?: SubmissionStat[] | null) => {
 export async function fetchLeetCodeStatsFromApi(
   username: string
 ): Promise<LeetCodeStats | null> {
+  const normalized = username.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (!process.env.LEETCODE_SESSION || !process.env.LEETCODE_CSRF_TOKEN) {
+    console.warn(
+      "[leetcode] Missing LEETCODE_SESSION or LEETCODE_CSRF_TOKEN. Direct GraphQL request might fail."
+    );
+  }
+
   try {
-    const normalized = username.trim();
-
-    if (!normalized) {
-      return null;
-    }
-
     const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
       method: "POST",
       headers: buildLeetCodeHeaders(),
@@ -156,21 +179,25 @@ export async function fetchLeetCodeStatsFromApi(
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
       if (response.status === 401 || response.status === 403) {
         console.warn(
-          "[leetcode] Stats request unauthorized. Ensure LEETCODE_SESSION/LEETCODE_CSRF_TOKEN env vars are set."
+          `[leetcode] Unauthorized or Forbidden (${response.status}). Attempting fallback...`
         );
+        return await fetchLeetCodeStatsFromExternalApi(normalized);
       }
-      throw new Error(
-        `LeetCode API request failed (${response.status}): ${errorBody}`
+      const errorBody = await response.text();
+      console.warn(
+        `LeetCode API request failed (${response.status}): ${errorBody}. Attempting fallback...`
       );
+      return await fetchLeetCodeStatsFromExternalApi(normalized);
     }
 
     const body: GraphQLResponse = await response.json();
 
     if (body.errors?.length) {
-      throw new Error(body.errors.map((err) => err?.message ?? "Unknown error").join("; "));
+      const errorMsg = body.errors.map((e) => e.message).join("; ");
+      console.warn(`[leetcode] GraphQL errors: ${errorMsg}. Attempting fallback...`);
+      return await fetchLeetCodeStatsFromExternalApi(normalized);
     }
 
     const matchedUser = body.data?.matchedUser;
@@ -181,6 +208,15 @@ export async function fetchLeetCodeStatsFromApi(
 
     const submissionTotals = sumSubmissionStats(matchedUser.submitStats?.acSubmissionNum);
     const contest = body.data?.userContestRanking;
+
+    let parsedCalendar: Record<string, number> | undefined;
+    try {
+      if (matchedUser.userCalendar?.submissionCalendar) {
+        parsedCalendar = JSON.parse(matchedUser.userCalendar.submissionCalendar);
+      }
+    } catch (e) {
+      console.warn("[leetcode] Failed to parse submissionCalendar", e);
+    }
 
     return {
       username: matchedUser.username,
@@ -201,10 +237,62 @@ export async function fetchLeetCodeStatsFromApi(
       mediumSolved: submissionTotals.mediumSolved,
       hardSolved: submissionTotals.hardSolved,
       totalSubmissions: submissionTotals.totalSubmissions,
+      streak: matchedUser.userCalendar?.streak,
+      totalActiveDays: matchedUser.userCalendar?.totalActiveDays,
+      activeYears: matchedUser.userCalendar?.activeYears,
+      submissionCalendar: parsedCalendar,
       fetchedAt: new Date(),
     };
   } catch (error) {
-    console.error("[leetcode] Failed to fetch stats", error);
+    console.error("[leetcode] Failed to fetch stats via GraphQL", error);
+    return await fetchLeetCodeStatsFromExternalApi(normalized);
+  }
+}
+
+async function fetchLeetCodeStatsFromExternalApi(
+  username: string
+): Promise<LeetCodeStats | null> {
+  try {
+    const response = await fetch(`${EXTERNAL_LEETCODE_API}/${username}`);
+    if (!response.ok) {
+      console.warn(`[leetcode] External API failed (${response.status})`);
+      return null;
+    }
+    const data = await response.json();
+
+    let parsedCalendar = data.submissionCalendar;
+    if (typeof parsedCalendar === "string") {
+      try {
+        parsedCalendar = JSON.parse(parsedCalendar);
+      } catch {}
+    }
+
+    return {
+      username: data.username || username,
+      displayName: data.name || data.realName || null,
+      profileUrl: `https://leetcode.com/${username}/`,
+      avatarUrl: data.avatar || data.userAvatar || null,
+      country: data.country || null,
+      ranking: data.ranking || null,
+      reputation: data.reputation || null,
+      githubUrl: data.github || data.gitHub || null,
+      badges: data.badgesCount || 0,
+      contestRating: null,
+      contestGlobalRanking: null,
+      contestTopPercentage: null,
+      contestsAttended: null,
+      totalSolved: data.totalSolved || 0,
+      easySolved: data.easySolved || 0,
+      mediumSolved: data.mediumSolved || 0,
+      hardSolved: data.hardSolved || 0,
+      totalSubmissions: data.totalSubmissions || 0,
+      streak: data.streak || 0,
+      totalActiveDays: data.totalActiveDays || 0,
+      submissionCalendar: parsedCalendar,
+      fetchedAt: new Date(),
+    };
+  } catch (error) {
+    console.error("[leetcode] External API error", error);
     return null;
   }
 }

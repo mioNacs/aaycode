@@ -1,9 +1,11 @@
 export const GFG_PROFILE_BASE_URL = "https://www.geeksforgeeks.org/user/";
+export const GFG_API_SUBMISSIONS_URL = "https://practiceapi.geeksforgeeks.org/api/v1/user/profile/submissions/";
 
 export const USER_AGENT = "AyyCodeApp/1.0 (+https://github.com/mioNacs/aaycode)";
 
-const SCRIPT_REGEX =
-  /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i;
+const INITIAL_STATE_REGEX = /window\.__INITIAL_STATE__\s*=\s*({.*?});/;
+// Fallback for older pages or alternative structures
+const NEXT_DATA_REGEX = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/i;
 
 const cleanString = (value: unknown): string | undefined => {
   if (typeof value === "string") {
@@ -46,13 +48,28 @@ export type GeeksforgeeksStats = {
 };
 
 export const extractNextData = (html: string): unknown => {
-  const match = html.match(SCRIPT_REGEX);
-
-  if (!match || !match[1]) {
-    throw new Error("Unable to locate __NEXT_DATA__ script in GeeksforGeeks profile page");
+  // New method: Try parsing window.__INITIAL_STATE__
+  const stateMatch = html.match(INITIAL_STATE_REGEX);
+  if (stateMatch && stateMatch[1]) {
+    try {
+      return JSON.parse(stateMatch[1]);
+    } catch (e) {
+      console.warn("[geeksforgeeks] Failed to parse __INITIAL_STATE__", e);
+    }
   }
 
-  return JSON.parse(match[1]) as unknown;
+  // Fallback: Try __NEXT_DATA__
+  const nextDataMatch = html.match(NEXT_DATA_REGEX);
+  if (nextDataMatch && nextDataMatch[1]) {
+    try {
+      return JSON.parse(nextDataMatch[1]);
+    } catch (e) {
+      console.warn("[geeksforgeeks] Failed to parse __NEXT_DATA__", e);
+    }
+  }
+  
+  // Return empty object if extraction fails, caller should handle it
+  return {};
 };
 
 export const isProfileMissing = (html: string): boolean => {
@@ -110,11 +127,70 @@ export async function fetchGeeksforgeeksStatsFromApi(
       return null;
     }
 
-    const nextData = extractNextData(html);
+    const state = extractNextData(html);
+    
+    // Try to find user data in possible locations in the state object
+    // __INITIAL_STATE__ usually has userInfo or profileData
+    // __NEXT_DATA__ usually has props.pageProps.userInfo
+    
+    let userInfo = getNested(state, ["userInfo"]);
+    if (!userInfo) userInfo = getNested(state, ["profileData"]);
+    if (!userInfo) userInfo = getNested(state, ["props", "pageProps", "userInfo"]);
 
-    const userInfo = getNested(nextData, ["props", "pageProps", "userInfo"]);
+    // If still not found, try falling back to API
+    if (!userInfo || typeof userInfo !== "object") {
+       console.warn(`[geeksforgeeks] JSON extraction failed for ${normalized}. Attempting API fallback...`);
+       try {
+         const apiRes = await fetch(`${GFG_API_SUBMISSIONS_URL}${encodeURIComponent(normalized)}/`, {
+            headers: { "User-Agent": USER_AGENT },
+            next: { revalidate: 60 * 60 }
+         });
+         
+         if (apiRes.ok) {
+            const apiData = await apiRes.json();
+             // API usually returns { info: { ... }, result: [ ...missions ] } or similar
+             // We map what we can. The API might not contain all profile details.
+             const info = apiData.info || {};
+             
+             return {
+                username: normalized,
+                profileUrl,
+                avatarUrl: cleanString(info.profile_image_url) ?? null,
+                codingScore: parseNumeric(info.score) ?? null,
+                totalProblemsSolved: parseNumeric(info.total_problems_solved) ?? null,
+                instituteRank: parseNumeric(info.institute_rank) ?? null,
+                schoolRank: parseNumeric(info.school_rank) ?? null,
+                streak: parseNumeric(info.pod_solved_longest_streak) ?? null,
+                country: cleanString(info.country) ?? null,
+                fetchedAt: new Date(),
+             };
+         }
+       } catch (apiErr) {
+          console.error("[geeksforgeeks] API fallback failed", apiErr);
+       }
+    }
 
     if (!userInfo || typeof userInfo !== "object") {
+      // Final fallback: Regex/Selectors on the HTML if JSON failed
+      // Implementing basic regex scraping for critical stats as last resort
+      const scoreMatch = html.match(/codingScore\s*=\s*['"]?(\d+)['"]?/i) || html.match(/class="scoreCard_score__[^"]+">(\d+)</);
+      const problemsMatch = html.match(/totalProblemsSolved\s*=\s*['"]?(\d+)['"]?/i) || html.match(/class="scoreCard_problems__[^"]+">(\d+)</);
+      
+      if (scoreMatch || problemsMatch) {
+         return {
+            username: normalized,
+            profileUrl,
+            avatarUrl: null,
+            codingScore: scoreMatch ? parseNumeric(scoreMatch[1]) : null,
+            totalProblemsSolved: problemsMatch ? parseNumeric(problemsMatch[1]) : null,
+            instituteRank: null,
+            schoolRank: null,
+            streak: null,
+            country: null,
+            fetchedAt: new Date(),
+         };
+      }
+    
       return null;
     }
 
